@@ -342,6 +342,8 @@ export class PlatformRef_ extends PlatformRef {
   }
 }
 
+export const platform: PlatformRef = new PlatformRef_(Injector.NULL);
+
 /**
  * A reference to an Angular application running on a page.
  *
