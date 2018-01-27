@@ -6,12 +6,11 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {createComponentRef, detectChanges, getHostElement, markDirty, renderComponent} from './component';
-import {NgOnChangesFeature, PublicFeature, defineComponent, defineDirective} from './definition';
-import {InjectFlags} from './di';
-import {ComponentDef, ComponentTemplate, ComponentType, DirectiveDef, DirectiveDefFlags, DirectiveType} from './interfaces/definition';
-
+export {createComponentRef, detectChanges, getHostElement, markDirty, renderComponent} from './component';
+export {NgOnChangesFeature, PipeDef, PublicFeature, defineComponent, defineDirective, definePipe} from './definition';
 export {InjectFlags, QUERY_READ_CONTAINER_REF, QUERY_READ_ELEMENT_REF, QUERY_READ_FROM_NODE, QUERY_READ_TEMPLATE_REF, inject, injectElementRef, injectTemplateRef, injectViewContainerRef} from './di';
+export {ComponentDef, ComponentTemplate, ComponentType, DirectiveDef, DirectiveDefFlags, DirectiveType} from './interfaces/definition';
+
 
 // Naming scheme:
 // - Capital letters are for creating things: T(Text), E(Element), D(Directive), V(View),
@@ -64,6 +63,14 @@ export {
 } from './instructions';
 
 export {
+  pipeBind1 as pb1,
+  pipeBind2 as pb2,
+  pipeBind3 as pb3,
+  pipeBind4 as pb4,
+  pipeBindV as pbV,
+} from './pipe';
+
+export {
   QueryList,
 
   query as Q,
@@ -74,17 +81,4 @@ export {LifecycleHook} from './hooks';
 
 // clang-format on
 
-export {
-  ComponentDef,
-  ComponentTemplate,
-  ComponentType,
-  DirectiveDef,
-  DirectiveDefFlags,
-  DirectiveType,
-  NgOnChangesFeature,
-  PublicFeature,
-  defineComponent,
-  defineDirective,
-};
-export {createComponentRef, detectChanges, getHostElement, markDirty, renderComponent};
 export {CssSelector} from './interfaces/projection';

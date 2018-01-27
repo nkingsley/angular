@@ -6,7 +6,9 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {Component, Directive, Injectable, Input, NgModule, Optional, SimpleChanges, TemplateRef, Type, ViewContainerRef} from '../../src/core';
+import {PipeTransform} from 'core/src/change_detection/pipe_transform';
+
+import {Component, Directive, Injectable, Input, NgModule, Optional, Pipe, SimpleChanges, TemplateRef, Type, ViewContainerRef} from '../../src/core';
 import * as r3 from '../../src/render3/index';
 
 import {containerEl, renderComponent, requestAnimationFrame, toHtml} from './render_util';
@@ -238,6 +240,60 @@ describe('compiler specification', () => {
         });
       }
     });
+  });
+
+  describe('pipes', () => {
+    @Pipe({
+      name: 'myPipe',
+    })
+    class MyPipe implements PipeTransform {
+      transform(value: any, ...args: any[]) { throw new Error('Method not implemented.'); }
+
+      // NORMATIVE
+      static ngPipeDef =
+          r3.definePipe({factory: function MyPipe_Factory() { return new MyPipe(); }});
+      // /NORMATIVE
+    }
+
+    @Pipe({
+      name: 'myPurePipe',
+      pure: true,
+    })
+    class MyPurePipe implements PipeTransform {
+      transform(value: any, ...args: any[]) { throw new Error('Method not implemented.'); }
+
+      // NORMATIVE
+      static ngPipeDef =
+          r3.definePipe({factory: function MyPipe_Factory() { return new MyPipe(); }, pure: true});
+      // /NORMATIVE
+    }
+
+    @Component({template: `{{name | myPipe:size | myPurePipe:size }}`})
+    class MyApp {
+      name = 'World';
+      size = 0;
+
+      // NORMATIVE
+      static ngComponentDef = r3.defineComponent({
+        type: MyApp,
+        tag: 'my-app',
+        factory: function MyApp_Factory() { return new MyApp(); },
+        template: function MyApp_Template(ctx: MyApp, cm: boolean) {
+          if (cm) {
+            r3.m(0, MyPipe.ngPipeDef.n());
+            r3.m(1, MyPurePipe.ngPipeDef.n());
+            r3.T(2);
+          }
+          r3.t(
+              2, r3.b1('', r3.pb2(1, r3.m<MyPipe>(0).transform(ctx.name, ctx.size), ctx.size), ''));
+        }
+      });
+      // /NORMATIVE
+    }
+
+    xit('should render pipes', () => {
+                                   // TODO(misko): write a test once pipes runtime is implemented.
+                               });
   });
 
   describe('local references', () => {

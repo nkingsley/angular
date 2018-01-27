@@ -7,6 +7,7 @@
  */
 
 import {SimpleChange} from '../change_detection/change_detection_util';
+import {PipeTransform} from '../change_detection/pipe_transform';
 import {OnChanges, SimpleChanges} from '../metadata/lifecycle_hooks';
 import {RendererType2} from '../render/api';
 import {Type} from '../type';
@@ -157,3 +158,13 @@ function invertObject(obj: any): any {
  */
 export const defineDirective = defineComponent as<T>(directiveDefinition: DirectiveDefArgs<T>) =>
     DirectiveDef<T>;
+
+export interface PipeDef {
+  n: () => PipeTransform;
+  pure: boolean;
+}
+
+export function definePipe({factory, pure}: {factory: () => PipeTransform, pure?: boolean}):
+    PipeDef {
+  throw new Error('TODO: implement!');
+}
