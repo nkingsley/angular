@@ -6,9 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {PipeTransform} from 'core/src/change_detection/pipe_transform';
-
-import {Component, Directive, Injectable, Input, NgModule, Optional, Pipe, SimpleChanges, TemplateRef, Type, ViewContainerRef} from '../../src/core';
+import {Component, Directive, Injectable, Input, NgModule, Optional, Pipe, SimpleChanges, TemplateRef, Type, ViewContainerRef, PipeTransform} from '../../src/core';
 import * as r3 from '../../src/render3/index';
 
 import {containerEl, renderComponent, requestAnimationFrame, toHtml} from './render_util';
@@ -242,7 +240,7 @@ describe('compiler specification', () => {
     });
   });
 
-  describe('pipes', () => {
+  xdescribe('pipes', () => {
     @Pipe({
       name: 'myPipe',
     })
@@ -291,7 +289,7 @@ describe('compiler specification', () => {
       // /NORMATIVE
     }
 
-    xit('should render pipes', () => {
+    it('should render pipes', () => {
                                    // TODO(misko): write a test once pipes runtime is implemented.
                                });
   });
