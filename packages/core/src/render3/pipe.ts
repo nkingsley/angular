@@ -40,7 +40,7 @@ export function pipeBind1(index: number, v1: any): any {
  *
  * @param index Pipe index where the pipe was stored on creation.
  * @param v1 1st argument to {@link PipeTransform#transform}.
- * @param v2 1st argument to {@link PipeTransform#transform}.
+ * @param v2 2nd argument to {@link PipeTransform#transform}.
  */
 export function pipeBind2(index: number, v1: any, v2: any): any {
   throw new Error('TODO: implement!');
@@ -54,8 +54,8 @@ export function pipeBind2(index: number, v1: any, v2: any): any {
  *
  * @param index Pipe index where the pipe was stored on creation.
  * @param v1 1st argument to {@link PipeTransform#transform}.
- * @param v2 1st argument to {@link PipeTransform#transform}.
- * @param v3 1st argument to {@link PipeTransform#transform}.
+ * @param v2 2nd argument to {@link PipeTransform#transform}.
+ * @param v3 4rd argument to {@link PipeTransform#transform}.
  */
 export function pipeBind3(index: number, v1: any, v2: any, v3: any): any {
   throw new Error('TODO: implement!');
@@ -69,9 +69,9 @@ export function pipeBind3(index: number, v1: any, v2: any, v3: any): any {
  *
  * @param index Pipe index where the pipe was stored on creation.
  * @param v1 1st argument to {@link PipeTransform#transform}.
- * @param v2 1st argument to {@link PipeTransform#transform}.
- * @param v3 1st argument to {@link PipeTransform#transform}.
- * @param v4 1st argument to {@link PipeTransform#transform}.
+ * @param v2 2nd argument to {@link PipeTransform#transform}.
+ * @param v3 3rd argument to {@link PipeTransform#transform}.
+ * @param v4 4th argument to {@link PipeTransform#transform}.
  */
 export function pipeBind4(index: number, v1: any, v2: any, v3: any, v4: any): any {
   throw new Error('TODO: implement!');
