@@ -122,7 +122,7 @@ export interface PipeDef<T> {
   n: () => PipeTransform;
 
   /**
-   * Wether or not the pipe is pure.
+   * Whether or not the pipe is pure.
    *
    * Pure pipes result only depends on the pipe input and not on internal
    * state of the pipe.

@@ -266,7 +266,7 @@ describe('compiler specification', () => {
       // NORMATIVE
       static ngPipeDef = r3.definePipe({
         type: MyPurePipe,
-        factory: function MyPipe_Factory() { return new MyPipe(); },
+        factory: function MyPurePipe_Factory() { return new MyPipe(); },
         pure: true
       });
       // /NORMATIVE
