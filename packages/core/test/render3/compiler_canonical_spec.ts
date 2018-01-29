@@ -6,7 +6,8 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {Component, Directive, Injectable, Input, NgModule, Optional, Pipe, SimpleChanges, TemplateRef, Type, ViewContainerRef, PipeTransform} from '../../src/core';
+import {Component, Directive, Injectable, Input, NgModule, Optional, Pipe, PipeTransform, SimpleChanges, TemplateRef, Type, ViewContainerRef} from '../../src/core';
+import {OnDestroy} from '../../src/metadata/lifecycle_hooks';
 import * as r3 from '../../src/render3/index';
 
 import {containerEl, renderComponent, requestAnimationFrame, toHtml} from './render_util';
@@ -244,12 +245,14 @@ describe('compiler specification', () => {
     @Pipe({
       name: 'myPipe',
     })
-    class MyPipe implements PipeTransform {
+    class MyPipe implements PipeTransform,
+        OnDestroy {
       transform(value: any, ...args: any[]) { throw new Error('Method not implemented.'); }
+      ngOnDestroy(): void { throw new Error('Method not implemented.'); }
 
       // NORMATIVE
-      static ngPipeDef =
-          r3.definePipe({factory: function MyPipe_Factory() { return new MyPipe(); }});
+      static ngPipeDef = r3.definePipe(
+          {type: MyPipe, factory: function MyPipe_Factory() { return new MyPipe(); }});
       // /NORMATIVE
     }
 
@@ -261,8 +264,11 @@ describe('compiler specification', () => {
       transform(value: any, ...args: any[]) { throw new Error('Method not implemented.'); }
 
       // NORMATIVE
-      static ngPipeDef =
-          r3.definePipe({factory: function MyPipe_Factory() { return new MyPipe(); }, pure: true});
+      static ngPipeDef = r3.definePipe({
+        type: MyPurePipe,
+        factory: function MyPipe_Factory() { return new MyPipe(); },
+        pure: true
+      });
       // /NORMATIVE
     }
 
@@ -278,8 +284,8 @@ describe('compiler specification', () => {
         factory: function MyApp_Factory() { return new MyApp(); },
         template: function MyApp_Template(ctx: MyApp, cm: boolean) {
           if (cm) {
-            r3.m(0, MyPipe.ngPipeDef.n());
-            r3.m(1, MyPurePipe.ngPipeDef.n());
+            r3.Pp(0, MyPipe_ngPipeDef, MyPipe_ngPipeDef.n());
+            r3.Pp(1, MyPurePipe_ngPipeDef, MyPurePipe_ngPipeDef.n());
             r3.T(2);
           }
           r3.t(
@@ -288,10 +294,14 @@ describe('compiler specification', () => {
       });
       // /NORMATIVE
     }
+    // NORMATIVE
+    const MyPipe_ngPipeDef = MyPipe.ngPipeDef;
+    const MyPurePipe_ngPipeDef = MyPurePipe.ngPipeDef;
+    // /NORMATIVE
 
     it('should render pipes', () => {
-                                   // TODO(misko): write a test once pipes runtime is implemented.
-                               });
+                                  // TODO(misko): write a test once pipes runtime is implemented.
+                              });
   });
 
   describe('local references', () => {

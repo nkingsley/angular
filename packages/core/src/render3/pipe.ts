@@ -6,6 +6,19 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
+import {PipeDef} from './interfaces/definition';
+
+/**
+ * Create a pipe.
+ *
+ * @param index Pipe index where the pipe will be stored.
+ * @param pipeDef Pipe definition object for registering life cycle hooks.
+ * @param pipe A Pipe instance.
+ */
+export function pipe<T>(index: number, pipeDef: PipeDef<T>, pipe: T): void {
+  throw new Error('TODO: implement!');
+}
+
 /**
  * Invokes a pure pipe with 4 arguments.
  *

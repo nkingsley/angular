@@ -7,9 +7,10 @@
  */
 
 export {createComponentRef, detectChanges, getHostElement, markDirty, renderComponent} from './component';
-export {NgOnChangesFeature, PipeDef, PublicFeature, defineComponent, defineDirective, definePipe} from './definition';
+export {NgOnChangesFeature, PublicFeature, defineComponent, defineDirective, definePipe} from './definition';
 export {InjectFlags, QUERY_READ_CONTAINER_REF, QUERY_READ_ELEMENT_REF, QUERY_READ_FROM_NODE, QUERY_READ_TEMPLATE_REF, inject, injectElementRef, injectTemplateRef, injectViewContainerRef} from './di';
-export {ComponentDef, ComponentTemplate, ComponentType, DirectiveDef, DirectiveDefFlags, DirectiveType} from './interfaces/definition';
+export {ComponentDef, ComponentTemplate, ComponentType, DirectiveDef, DirectiveDefFlags, DirectiveType, PipeDef} from './interfaces/definition';
+
 
 
 // Naming scheme:
@@ -63,6 +64,7 @@ export {
 } from './instructions';
 
 export {
+  pipe as Pp,
   pipeBind1 as pb1,
   pipeBind2 as pb2,
   pipeBind3 as pb3,
