@@ -124,8 +124,6 @@ describe('compiler compliance', () => {
               $r3$.ɵe();
               $r3$.ɵT(3, '!');
             }
-            ChildComponent.ngComponentDef.h(1, 0);
-            SomeDirective.ngDirectiveDef.h(2, 0);
             $r3$.ɵr(1, 0);
             $r3$.ɵr(2, 0);
           }
@@ -162,7 +160,6 @@ describe('compiler compliance', () => {
         static ngDirectiveDef = $r3$.ɵdefineDirective({
           type: HostBindingDir,
           factory: function HostBindingDir_Factory() { return new HostBindingDir(); },
-          hostBindings: function HostBindingDir_HostBindings(
               dirIndex: $number$, elIndex: $number$) {
             $r3$.ɵp(elIndex, 'id', $r3$.ɵb($r3$.ɵld(dirIndex).dirId));
           }
@@ -220,7 +217,6 @@ describe('compiler compliance', () => {
               $r3$.ɵe();
             }
             const $foo$ = $r3$.ɵld(1);
-            IfDirective.ngDirectiveDef.h(3,2);
             $r3$.ɵcR(2);
             $r3$.ɵr(3,2);
             $r3$.ɵcr();
@@ -291,7 +287,6 @@ describe('compiler compliance', () => {
                 $r3$.ɵe();
               }
               $r3$.ɵp(0, 'names', $r3$.ɵb($r3$.ɵf1($e0_ff$, ctx.customName)));
-              MyComp.ngComponentDef.h(1, 0);
               $r3$.ɵr(1, 0);
             }
           });
@@ -371,7 +366,6 @@ describe('compiler compliance', () => {
               $r3$.ɵp(
                   0, 'names',
                   $r3$.ɵb($r3$.ɵfV($e0_ff$, ctx.n0, ctx.n1, ctx.n2, ctx.n3, ctx.n4, ctx.n5, ctx.n6, ctx.n7, ctx.n8)));
-              MyComp.ngComponentDef.h(1, 0);
               $r3$.ɵr(1, 0);
             }
           });
@@ -429,7 +423,6 @@ describe('compiler compliance', () => {
                 $r3$.ɵe();
               }
               $r3$.ɵp(0, 'config', $r3$.ɵb($r3$.ɵf1($e0_ff$, ctx.name)));
-              ObjectComp.ngComponentDef.h(1, 0);
               $r3$.ɵr(1, 0);
             }
           });
@@ -496,7 +489,6 @@ describe('compiler compliance', () => {
                   0, 'config',
                   $r3$.ɵb($r3$.ɵf2(
                       $e0_ff_2$, ctx.name, $r3$.ɵf1($e0_ff_1$, $r3$.ɵf1($e0_ff$, ctx.duration)))));
-              NestedComp.ngComponentDef.h(1, 0);
               $r3$.ɵr(1, 0);
             }
           });
@@ -637,7 +629,6 @@ describe('compiler compliance', () => {
                 $r3$.ɵe();
               }
               ($r3$.ɵqR(($tmp$ = $r3$.ɵld(0))) && (ctx.someDir = $tmp$.first));
-              SomeDirective.ngDirectiveDef.h(2, 1);
               $r3$.ɵr(2, 1);
             }
           });`;
@@ -689,7 +680,6 @@ describe('compiler compliance', () => {
             factory: function ContentQueryComponent_Factory() {
               return [new ContentQueryComponent(), $r3$.ɵQ(null, SomeDirective, true)];
             },
-            hostBindings: function ContentQueryComponent_HostBindings(
                 dirIndex: $number$, elIndex: $number$) {
               var $tmp$: $any$;
               ($r3$.ɵqR(($tmp$ = $r3$.ɵld(dirIndex)[1])) && ($r3$.ɵld(dirIndex)[0].someDir = $tmp$.first));
@@ -773,8 +763,8 @@ describe('compiler compliance', () => {
               template: function MyApp_Template(ctx: IDENT, cm: IDENT) {
                 if (cm) {
                   $r3$.ɵT(0);
-                  $r3$.ɵPp(1, $MyPurePipe_ngPipeDef$, $MyPurePipe_ngPipeDef$.n());
-                  $r3$.ɵPp(2, $MyPipe_ngPipeDef$, $MyPipe_ngPipeDef$.n());
+                  $r3$.ɵPp(1, $MyPurePipe_ngPipeDef$, $MyPurePipe_ngPipeDef$.factory());
+                  $r3$.ɵPp(2, $MyPipe_ngPipeDef$, $MyPipe_ngPipeDef$.factory());
                 }
                 $r3$.ɵt(0, $r3$.ɵi1('', $r3$.ɵpb2(1, $r3$.ɵpb2(2,ctx.name, ctx.size), ctx.size), ''));
               }
@@ -900,8 +890,6 @@ describe('compiler compliance', () => {
               }
               $r3$.ɵp(0, 'name', $r3$.ɵb(ctx.name1));
               $r3$.ɵp(2, 'name', $r3$.ɵb(ctx.name2));
-              $c1$.h(1, 0);
-              $c1$.h(3, 2);
               $r3$.ɵr(1, 0);
               $r3$.ɵr(3, 2);
             }
@@ -1019,7 +1007,6 @@ describe('compiler compliance', () => {
                 $r3$.ɵe();
               }
               $r3$.ɵp(1, 'forOf', $r3$.ɵb(ctx.items));
-              ForOfDirective.ngDirectiveDef.h(2, 1);
               $r3$.ɵcR(1);
               $r3$.ɵr(2, 1);
               $r3$.ɵcr();
@@ -1097,7 +1084,6 @@ describe('compiler compliance', () => {
                 $r3$.ɵe();
               }
               $r3$.ɵp(1, 'forOf', $r3$.ɵb(ctx.items));
-              $c2$.h(2,1);
               $r3$.ɵcR(1);
               $r3$.ɵr(2, 1);
               $r3$.ɵcr();
@@ -1115,7 +1101,6 @@ describe('compiler compliance', () => {
                 }
                 const $item$ = ctx0.$implicit;
                 $r3$.ɵp(4, 'forOf', $r3$.ɵb(IDENT.infos));
-                $c2$.h(5,4);
                 $r3$.ɵt(2, $r3$.ɵi1('', IDENT.name, ''));
                 $r3$.ɵcR(4);
                 $r3$.ɵr(5, 4);

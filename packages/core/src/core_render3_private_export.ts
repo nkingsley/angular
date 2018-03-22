@@ -23,6 +23,7 @@ export {
   PublicFeature as ɵPublicFeature,
   NgOnChangesFeature as ɵNgOnChangesFeature,
   CssSelector as ɵCssSelector,
+  markDirty as ɵmarkDirty,
   NC as ɵNC,
   C as ɵC,
   E as ɵE,

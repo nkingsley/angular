@@ -2,9 +2,9 @@ workspace(name = "angular")
 
 http_archive(
     name = "build_bazel_rules_nodejs",
-    url = "https://github.com/bazelbuild/rules_nodejs/archive/25bb70fb67bddcc257b869f434ccc0fd130ec3bd.zip",
-    strip_prefix = "rules_nodejs-25bb70fb67bddcc257b869f434ccc0fd130ec3bd",
-    sha256 = "11c0d73bdcb4b2608abbe5967be5a910bdaebf848eb13e4e7f8413bbdeb940b8",
+    url = "https://github.com/bazelbuild/rules_nodejs/archive/c16c5bd178fab79fe601cc56bf8ae18e6bc310b5.zip",
+    strip_prefix = "rules_nodejs-c16c5bd178fab79fe601cc56bf8ae18e6bc310b5",
+    sha256 = "32fdfd092062119d72621afabc81682ac79ba5c93a2e3b32667b494d96f7dee7",
 )
 
 load("@build_bazel_rules_nodejs//:defs.bzl", "check_bazel_version", "node_repositories", "yarn_install")

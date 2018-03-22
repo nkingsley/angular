@@ -326,7 +326,6 @@ class TemplateDefinitionBuilder implements TemplateAstVisitor, LocalResolver {
   private _prefix: o.Statement[] = [];
   private _creationMode: o.Statement[] = [];
   private _bindingMode: o.Statement[] = [];
-  private _hostMode: o.Statement[] = [];
   private _refreshMode: o.Statement[] = [];
   private _postfix: o.Statement[] = [];
   private _contentProjections: Map<NgContentAst, NgContentInfo>;
@@ -459,8 +458,6 @@ class TemplateDefinitionBuilder implements TemplateAstVisitor, LocalResolver {
           ...creationMode,
           // Binding mode (i.e. ɵp(...))
           ...this._bindingMode,
-          // Host mode (i.e. Comp.h(...))
-          ...this._hostMode,
           // Refresh mode (i.e. Comp.r(...))
           ...this._refreshMode,
           // Nested templates (i.e. function CompTemplate() {})
@@ -622,6 +619,21 @@ class TemplateDefinitionBuilder implements TemplateAstVisitor, LocalResolver {
 
     const implicit = o.variable(this.contextParameter);
 
+    // Generate Listeners (outputs)
+    ast.outputs.forEach((outputAst: BoundEventAst) => {
+      const functionName = `${this.templateName}_${ast.name}_${outputAst.name}_listener`;
+      const bindingExpr = convertActionBinding(
+          this, implicit, outputAst.handler, 'b', () => error('Unexpected interpolation'));
+      const handler = o.fn(
+          [new o.FnParam('$event', o.DYNAMIC_TYPE)],
+          [...bindingExpr.stmts, new o.ReturnStatement(bindingExpr.allowDefault)], o.INFERRED_TYPE,
+          null, functionName);
+      this.instruction(
+          this._creationMode, outputAst.sourceSpan, R3.listener, o.literal(outputAst.name),
+          handler);
+    });
+
+
     // Generate element input bindings
     for (let input of element.inputs) {
       if (input.isAnimation) {
@@ -682,17 +694,6 @@ class TemplateDefinitionBuilder implements TemplateAstVisitor, LocalResolver {
             this._bindingMode, directive.sourceSpan, R3.elementProperty, o.literal(nodeIndex),
             o.literal(input.templateName), o.importExpr(R3.bind).callFn([convertedBinding]));
       }
-
-      // e.g. MyDirective.ngDirectiveDef.h(0, 0);
-      this._hostMode.push(
-          this.definitionOf(directiveType, kind)
-              .callMethod(R3.HOST_BINDING_METHOD, [o.literal(directiveIndex), o.literal(nodeIndex)])
-              .toStmt());
-
-      // e.g. r(0, 0);
-      this.instruction(
-          this._refreshMode, directive.sourceSpan, R3.refreshComponent, o.literal(directiveIndex),
-          o.literal(nodeIndex));
     }
   }
 
@@ -999,7 +1000,7 @@ function createHostBindingsFunction(
       const functionName =
           typeName && bindingName ? `${typeName}_${bindingName}_HostBindingHandler` : null;
       const handler = o.fn(
-          [new o.FnParam('event', o.DYNAMIC_TYPE)],
+          [new o.FnParam('$event', o.DYNAMIC_TYPE)],
           [...bindingExpr.stmts, new o.ReturnStatement(bindingExpr.allowDefault)], o.INFERRED_TYPE,
           null, functionName);
       statements.push(
