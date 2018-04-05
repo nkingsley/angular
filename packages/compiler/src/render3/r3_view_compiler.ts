@@ -180,7 +180,7 @@ export function compileComponent(
   const pipeMap = new Map(pipes.map<[string, CompilePipeSummary]>(pipe => [pipe.name, pipe]));
   const templateFunctionExpression =
       new TemplateDefinitionBuilder(
-          outputCtx, outputCtx.constantPool, reflector, CONTEXT_NAME, ROOT_SCOPE.nestedScope(), 0,
+          outputCtx, outputCtx.constantPool, reflector, CONTEXT_NAME, ROOT_SCOPE, 0,
           component.template !.ngContentSelectors, templateTypeName, templateName, pipeMap,
           component.viewQueries, addDirectiveDependency, addPipeDependency)
           .buildTemplateFunction(template, []);
@@ -331,34 +331,88 @@ function getLiteralFactory(
   return o.importExpr(pureFunctionIdent).callFn([literalFactory, ...literalFactoryArguments]);
 }
 
-class BindingScope {
-  private map = new Map<string, o.Expression>();
+function noop() {}
+
+/**
+ * Function which is executed whenever a variable is refferenced for the first time in a given
+ * scope.
+ *
+ * It is expected that the function creates the `const localName = expression`; statement.
+ */
+type DeclareLocalVarCallback = (lhsVar: o.ReadVarExpr, rhsExpression: o.Expression) => void;
+
+class BindingScope implements LocalResolver {
+  /**
+   * Keeps a map from local variables to their expressions.
+   *
+   * This is used when one refers to variable such as: 'let abc = a.b.c`.
+   * - key to the map is the string literal `"abc"`.
+   * - value `lhs` is the left hand side which is an AST representing `abc` which
+   *   can be used in other places of the source code.
+   * - value `rhs` is the right hand side which is an AST representing `a.b.c` which
+   *   can be used in other places of the source code.
+   * - value `declared` is true if the `declareLocalVarCallback` has been called for this scope
+   * already.
+   */
+  private map = new Map < string, {
+    lhs: o.ReadVarExpr;
+    rhs: o.Expression|undefined;
+    declared: boolean;
+  }
+  > ();
   private referenceNameIndex = 0;
 
-  constructor(private parent: BindingScope|null) {}
+  constructor();
+  constructor(parent: BindingScope, declareCallback: DeclareLocalVarCallback);
+  constructor(
+      private parent: BindingScope|null = null,
+      private declareLocalVarCallback: DeclareLocalVarCallback = noop) {}
 
   get(name: string): o.Expression|null {
     let current: BindingScope|null = this;
     while (current) {
-      const value = current.map.get(name);
+      let value = current.map.get(name);
       if (value != null) {
-        // Cache the value locally.
-        this.map.set(name, value);
-        return value;
+        if (current !== this) {
+          // make a local copy and reset the `declared` state.
+          value = {lhs: value.lhs, rhs: value.rhs, declared: false};
+          // Cache the value locally.
+          this.map.set(name, value);
+        }
+        if (value.rhs && !value.declared) {
+          // if it is first time we are referencing the variable in the scope
+          // than invoke the callback to insert variable declaration.
+          this.declareLocalVarCallback(value.lhs, value.rhs);
+          value.declared = true;
+        }
+        return value.lhs;
       }
       current = current.parent;
     }
     return null;
   }
 
-  set(name: string, value: o.Expression): BindingScope {
+  /**
+   * Create a local variable for later reference.
+   *
+   * @param name Name of the variable.
+   * @param lhs AST representing the left hand side of the `let lhs = rhs;`.
+   * @param rhs AST representing the right hand side of the `let lhs = rhs;`. The `rhs` can be
+   * `undefined` for variable that are ambient such as `$event` and which don't have `rhs`
+   * declaration.
+   */
+  set(name: string, lhs: o.ReadVarExpr, rhs?: o.Expression): BindingScope {
     !this.map.has(name) ||
         error(`The name ${name} is already defined in scope to be ${this.map.get(name)}`);
-    this.map.set(name, value);
+    this.map.set(name, {lhs: lhs, rhs: rhs, declared: false});
     return this;
   }
 
-  nestedScope(): BindingScope { return new BindingScope(this); }
+  getLocal(name: string): (o.Expression|null) { return this.get(name); }
+
+  nestedScope(declareCallback: DeclareLocalVarCallback): BindingScope {
+    return new BindingScope(this, declareCallback);
+  }
 
   freshReferenceName(): string {
     let current: BindingScope = this;
@@ -369,7 +423,7 @@ class BindingScope {
   }
 }
 
-const ROOT_SCOPE = new BindingScope(null).set('$event', o.variable('$event'));
+const ROOT_SCOPE = new BindingScope().set('$event', o.variable('$event'));
 
 class TemplateDefinitionBuilder implements TemplateAstVisitor, LocalResolver {
   private _dataIndex = 0;
@@ -386,6 +440,7 @@ class TemplateDefinitionBuilder implements TemplateAstVisitor, LocalResolver {
   private _valueConverter: ValueConverter;
   private unsupported = unsupported;
   private invalid = invalid;
+  private bindingScope: BindingScope;
 
   // Whether we are inside a translatable element (`<p i18n>... somewhere here ... </p>)
   private _inI18nSection: boolean = false;
@@ -396,14 +451,19 @@ class TemplateDefinitionBuilder implements TemplateAstVisitor, LocalResolver {
   constructor(
       private outputCtx: OutputContext, private constantPool: ConstantPool,
       private reflector: CompileReflector, private contextParameter: string,
-      private bindingScope: BindingScope, private level = 0, private ngContentSelectors: string[],
+      parentBindingScope: BindingScope, private level = 0, private ngContentSelectors: string[],
       private contextName: string|null, private templateName: string|null,
       private pipes: Map<string, CompilePipeSummary>, private viewQueries: CompileQueryMetadata[],
       private addDirectiveDependency: (ast: DirectiveAst) => void,
       private addPipeDependency: (summary: CompilePipeSummary) => void) {
+    this.bindingScope =
+        parentBindingScope.nestedScope((lhsVar: o.ReadVarExpr, expression: o.Expression) => {
+          this._bindingMode.push(
+              lhsVar.set(expression).toDeclStmt(o.INFERRED_TYPE, [o.StmtModifier.Final]));
+        });
     this._valueConverter = new ValueConverter(
-        outputCtx, () => this.allocateDataSlot(), (name, localName, slot, value) => {
-          bindingScope.set(localName, value);
+        outputCtx, () => this.allocateDataSlot(), (name, localName, slot, value: o.ReadVarExpr) => {
+          this.bindingScope.set(localName, value);
           const pipe = pipes.get(name) !;
           pipe || error(`Could not find pipe ${name}`);
           this.addPipeDependency(pipe);
@@ -419,15 +479,8 @@ class TemplateDefinitionBuilder implements TemplateAstVisitor, LocalResolver {
       const expression =
           o.variable(this.contextParameter).prop(variable.value || IMPLICIT_REFERENCE);
       const scopedName = this.bindingScope.freshReferenceName();
-      const declaration = o.variable(scopedName).set(expression).toDeclStmt(o.INFERRED_TYPE, [
-        o.StmtModifier.Final
-      ]);
-
       // Add the reference to the local scope.
-      this.bindingScope.set(variableName, o.variable(scopedName));
-
-      // Declare the local variable in binding mode
-      this._bindingMode.push(declaration);
+      this.bindingScope.set(variableName, o.variable(variableName + scopedName), expression);
     }
 
     // Collect content projections
@@ -635,17 +688,24 @@ class TemplateDefinitionBuilder implements TemplateAstVisitor, LocalResolver {
     this.instruction(
         this._creationMode, element.sourceSpan, R3.createElement, ...trimTrailingNulls(parameters));
 
-    const implicit = o.variable(this.contextParameter);
+    const implicit = o.variable(CONTEXT_NAME);
 
     // Generate Listeners (outputs)
     element.outputs.forEach((outputAst: BoundEventAst) => {
       const functionName = `${this.templateName}_${element.name}_${outputAst.name}_listener`;
+      const localVars: o.Statement[] = [];
+      const bindingScope =
+          this.bindingScope.nestedScope((lhsVar: o.ReadVarExpr, rhsExpression: o.Expression) => {
+            localVars.push(
+                lhsVar.set(rhsExpression).toDeclStmt(o.INFERRED_TYPE, [o.StmtModifier.Final]));
+          });
       const bindingExpr = convertActionBinding(
-          this, o.variable('ctx'), outputAst.handler, 'b', () => error('Unexpected interpolation'));
+          bindingScope, o.variable(CONTEXT_NAME), outputAst.handler, 'b',
+          () => error('Unexpected interpolation'));
       const handler = o.fn(
           [new o.FnParam('$event', o.DYNAMIC_TYPE)],
-          [...bindingExpr.stmts, new o.ReturnStatement(bindingExpr.allowDefault)], o.INFERRED_TYPE,
-          null, functionName);
+          [...localVars, ...bindingExpr.stmts, new o.ReturnStatement(bindingExpr.allowDefault)],
+          o.INFERRED_TYPE, null, functionName);
       this.instruction(
           this._creationMode, outputAst.sourceSpan, R3.listener, o.literal(outputAst.name),
           handler);
@@ -756,13 +816,13 @@ class TemplateDefinitionBuilder implements TemplateAstVisitor, LocalResolver {
         ...trimTrailingNulls(parameters));
 
     // Generate directives
-    this._visitDirectives(ast.directives, o.variable(this.contextParameter), templateIndex);
+    this._visitDirectives(ast.directives, o.variable(CONTEXT_NAME), templateIndex);
 
     // Create the template function
     const templateVisitor = new TemplateDefinitionBuilder(
-        this.outputCtx, this.constantPool, this.reflector, templateContext,
-        this.bindingScope.nestedScope(), this.level + 1, this.ngContentSelectors, contextName,
-        templateName, this.pipes, [], this.addDirectiveDependency, this.addPipeDependency);
+        this.outputCtx, this.constantPool, this.reflector, templateContext, this.bindingScope,
+        this.level + 1, this.ngContentSelectors, contextName, templateName, this.pipes, [],
+        this.addDirectiveDependency, this.addPipeDependency);
     const templateFunctionExpr = templateVisitor.buildTemplateFunction(ast.children, ast.variables);
     this._postfix.push(templateFunctionExpr.toDeclStmt(templateName, null));
   }
@@ -782,9 +842,10 @@ class TemplateDefinitionBuilder implements TemplateAstVisitor, LocalResolver {
     this.instruction(this._creationMode, ast.sourceSpan, R3.text, o.literal(nodeIndex));
 
     // Refresh mode
+    debugger;
     this.instruction(
         this._refreshMode, ast.sourceSpan, R3.textCreateBound, o.literal(nodeIndex),
-        this.bind(o.variable(CONTEXT_NAME), ast.value, ast.sourceSpan));
+        this.convertPropertyBinding(o.variable(CONTEXT_NAME), ast.value));
   }
 
   // TemplateAstVisitor
@@ -846,10 +907,6 @@ class TemplateDefinitionBuilder implements TemplateAstVisitor, LocalResolver {
         interpolate);
     this._refreshMode.push(...convertedPropertyBinding.stmts);
     return convertedPropertyBinding.currValExpr;
-  }
-
-  private bind(implicit: o.Expression, value: AST, sourceSpan: ParseSourceSpan): o.Expression {
-    return this.convertPropertyBinding(implicit, value);
   }
 }
 
