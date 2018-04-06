@@ -78,8 +78,7 @@ describe('compiler compliance: template', () => {
                   const $outer$ = ctx0.$implicit;
                   const $middle$ = ctx1.$implicit;
                   const $inner$ = ctx2.$implicit;
-                  const pd_b:any = ((<any>ctx.onClick($outer$, $middle$, $inner$)) !== false);
-                  return pd_b;
+                  return ctx.onClick($outer$, $middle$, $inner$);
                 });
                 i0.ɵT(1);
                 i0.ɵe();

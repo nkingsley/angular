@@ -703,8 +703,7 @@ class TemplateDefinitionBuilder implements TemplateAstVisitor, LocalResolver {
           bindingScope, o.variable(CONTEXT_NAME), outputAst.handler, 'b',
           () => error('Unexpected interpolation'));
       const handler = o.fn(
-          [new o.FnParam('$event', o.DYNAMIC_TYPE)],
-          [...localVars, ...bindingExpr.stmts, new o.ReturnStatement(bindingExpr.allowDefault)],
+          [new o.FnParam('$event', o.DYNAMIC_TYPE)], [...localVars, ...bindingExpr.render3Stmts],
           o.INFERRED_TYPE, null, functionName);
       this.instruction(
           this._creationMode, outputAst.sourceSpan, R3.listener, o.literal(outputAst.name),
