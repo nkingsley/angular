@@ -201,7 +201,7 @@ function getIdxOfMatchingDirective(node: LNode, type: Type<any>): number|null {
   const end = start + count;
   for (let i = start; i < end; i++) {
     const def = defs[i] as DirectiveDef<any>;
-    if (def.type === type && def.diPublic) {
+    if ( def.type === type) {
       return i;
     }
   }
