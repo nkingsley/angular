@@ -55,6 +55,9 @@ let table: TableComponent;
 @Component({
   selector: 'table-comp',
   template: `
+    <button (click)="create()">Create</button>
+    <button (click)="destroy()">Destroy</button>
+    
     <table>
       <tbody>
       <tr *ngFor="let row of data">
@@ -71,35 +74,19 @@ export class TableComponent {
   data = emptyTable;
 
   constructor() {
-    table = this;
-  }
-}
-
-@Component({
-  selector: 'largetable-app',
-  template: `
-    <button (click)="create()">Create</button>
-    <button (click)="destroy()">Destroy</button>
-    
-   <table-comp></table-comp>
-  `,
-})
-export class LargeTableAppComponent {
-  data = emptyTable;
-  constructor() {
     setTimeout(() => {
       this.profileCreate();
-    }, 3000);
+    }, 1000);
   }
 
   create() {
-    table.data = buildTable();
-    detectChanges(table);
+    this.data = buildTable();
+    detectChanges(this);
   }
 
   destroy() {
-    table.data = emptyTable;
-    detectChanges(table);
+    this.data = emptyTable;
+    detectChanges(this);
   }
 
   profileCreate() {
@@ -109,7 +96,6 @@ export class LargeTableAppComponent {
   profileUpdate() {
     profile(() => this.create(), () => {}, 'update');
   }
-
 }
 
 export function profile(create: () => void, destroy: () => void, name: string) {
@@ -159,10 +145,10 @@ export function profile(create: () => void, destroy: () => void, name: string) {
   inputs: {ngIf: 'ngIf', ngIfThen: 'ngIfThen', ngIfElse: 'ngIfElse'}
 });
 
-@NgModule({declarations: [LargeTableAppComponent, TableComponent], imports: [CommonModule]})
+@NgModule({declarations: [TableComponent], imports: [CommonModule]})
 export class ToDoAppModule {
 }
 
 // TODO(misko): create cleaner way to publish component into global location for tests.
-(window as any).toDoAppComponent = renderComponent(LargeTableAppComponent);
+(window as any).toDoAppComponent = renderComponent(TableComponent);
 
