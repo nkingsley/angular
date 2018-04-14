@@ -139,11 +139,6 @@ export function profile(create: () => void, destroy: () => void, name: string) {
                // TODO(misko): inject does not work since it needs to be directiveInject
                // inject(IterableDiffers, defaultIterableDiffers)
                defaultIterableDiffers),
-  features: [NgOnChangesFeature({
-    ngForOf: 'ngForOf',
-    ngForTrackBy: 'ngForTrackBy',
-    ngForTemplate: 'ngForTemplate',
-  })],
   inputs: {
     ngForOf: 'ngForOf',
     ngForTrackBy: 'ngForTrackBy',

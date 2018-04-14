@@ -155,11 +155,6 @@ export class ToDoAppComponent {
   selectors: [['', 'ngFor', '', 'ngForOf', '']],
   factory: () => new NgForOf(
                injectViewContainerRef(), injectTemplateRef(), directiveInject(IterableDiffers)),
-  features: [NgOnChangesFeature({
-    ngForOf: 'ngForOf',
-    ngForTrackBy: 'ngForTrackBy',
-    ngForTemplate: 'ngForTemplate',
-  })],
   inputs: {
     ngForOf: 'ngForOf',
     ngForTrackBy: 'ngForTrackBy',
