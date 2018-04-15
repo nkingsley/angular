@@ -6,70 +6,38 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {ɵC as C, ɵE as E, ɵRenderFlags as RenderFlags, ɵT as T, ɵV as V, ɵb as b, ɵcR as cR, ɵcr as cr, ɵdefineComponent as defineComponent, ɵdetectChanges as detectChanges, ɵe as e, ɵsn as sn, ɵt as t, ɵv as v} from '@angular/core';
-import {ComponentDef} from '@angular/core/src/render3/interfaces/definition';
-
+import {Component, Input, ɵdetectChanges as detectChanges,  defineInjector,
+  NgModule,
+  ɵdefaultIterableDiffers as defaultIterableDiffers,
+  ɵdefineDirective as defineDirective,
+  ɵinjectTemplateRef as injectTemplateRef,
+  ɵinjectViewContainerRef as injectViewContainerRef,
+  ɵrenderComponent as renderComponent} from '@angular/core';
 import {TableCell, buildTable, emptyTable} from '../util';
+import {CommonModule, NgForOf, NgIf} from '@angular/common';
+import {bindAction, profile} from '../../util';
 
+@Component({
+  selector: 'large-table',
+  template: `    
+    <table>
+      <tbody>
+      <tr *ngFor="let row of data; trackBy: trackByIndex">
+        <td *ngFor="let cell of row; trackBy: trackByIndex" [style.background-color]="cell.row % 2 ? '' : 'grey'">
+          {{ cell.value }}
+        </td>
+      </tr>
+      </tbody>
+    </table>
+  `,
+})
 export class LargeTableComponent {
+  @Input()
   data: TableCell[][] = emptyTable;
 
-  /** @nocollapse */
-  static ngComponentDef: ComponentDef<LargeTableComponent> = defineComponent({
-    type: LargeTableComponent,
-    selectors: [['largetable']],
-    template: function(rf: RenderFlags, ctx: LargeTableComponent) {
-      if (rf & RenderFlags.Create) {
-        E(0, 'table');
-        {
-          E(1, 'tbody');
-          { C(2); }
-          e();
-        }
-        e();
-      }
-      if (rf & RenderFlags.Update) {
-        cR(2);
-        {
-          for (let row of ctx.data) {
-            let rf1 = V(1);
-            {
-              if (rf1 & RenderFlags.Create) {
-                E(0, 'tr');
-                C(1);
-                e();
-              }
-              if (rf1 & RenderFlags.Update) {
-                cR(1);
-                {
-                  for (let cell of row) {
-                    let rf2 = V(2);
-                    {
-                      if (rf2 & RenderFlags.Create) {
-                        E(0, 'td');
-                        { T(1); }
-                        e();
-                      }
-                      if (rf2 & RenderFlags.Update) {
-                        sn(0, 'background-color', b(cell.row % 2 ? '' : 'grey'));
-                        t(1, b(cell.value));
-                      }
-                    }
-                    v();
-                  }
-                }
-                cr();
-              }
-            }
-            v();
-          }
-        }
-        cr();
-      }
-    },
-    factory: () => new LargeTableComponent(),
-    inputs: {data: 'data'}
-  });
+  trackByIndex(index: number, item: any) {
+    return index;
+  }
 }
 
 export function destroyDom(component: LargeTableComponent) {
@@ -81,3 +49,41 @@ export function createDom(component: LargeTableComponent) {
   component.data = buildTable();
   detectChanges(component);
 }
+
+(CommonModule as any).ngInjectorDef = defineInjector({factory: () => new CommonModule});
+
+(NgForOf as any).ngDirectiveDef = defineDirective({
+  type: NgForOf,
+  selectors: [['', 'ngFor', '', 'ngForOf', '']],
+  factory: () => new NgForOf(
+    injectViewContainerRef(), injectTemplateRef(),
+    defaultIterableDiffers),
+  features: [],
+  inputs: {
+    ngForOf: 'ngForOf',
+    ngForTrackBy: 'ngForTrackBy',
+    ngForTemplate: 'ngForTemplate',
+  }
+});
+
+// TODO(misko): This hack is here because common is not compiled with Ivy flag turned on.
+(NgIf as any).ngDirectiveDef = defineDirective({
+  type: NgIf,
+  selectors: [['', 'ngIf', '']],
+  factory: () => new NgIf(injectViewContainerRef(), injectTemplateRef()),
+  inputs: {ngIf: 'ngIf', ngIfThen: 'ngIfThen', ngIfElse: 'ngIfElse'}
+});
+
+@NgModule({declarations: [LargeTableComponent], imports: [CommonModule]})
+export class LargeTableModule {
+}
+
+const component = (window as any).largeTableComponent = renderComponent(LargeTableComponent);
+
+bindAction('#createDom', () => createDom(component));
+bindAction('#destroyDom', () => destroyDom(component));
+bindAction('#updateDomProfile', profile(() => createDom(component), () => {}, 'update'));
+bindAction(
+  '#createDomProfile',
+  profile(() => createDom(component), () => destroyDom(component), 'create'));
+

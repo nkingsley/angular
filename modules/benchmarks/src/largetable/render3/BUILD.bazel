@@ -1,8 +1,10 @@
 package(default_visibility = ["//visibility:public"])
 
-load("//tools:defaults.bzl", "ng_module")
+load("//tools:defaults.bzl", "ts_library", "ivy_ng_module")
+load("//packages/bazel/src:ng_rollup_bundle.bzl", "ng_rollup_bundle")
+load("@build_bazel_rules_typescript//:defs.bzl", "ts_devserver")
 
-ng_module(
+ivy_ng_module(
     name = "largetable_lib",
     srcs = glob(
         [
@@ -12,7 +14,39 @@ ng_module(
     deps = [
         "//modules/benchmarks/src/largetable:util_lib",
         "//packages:types",
+        "//packages/common",
         "//packages/core",
         "@rxjs",
     ],
+)
+
+ng_rollup_bundle(
+    name = "bundle",
+    entry_point = "//dist/all/benchmarks/src/largetable/render3/index.js",
+    deps = [
+        ":largetable_lib",
+        "//packages/core",
+    ],
+)
+
+genrule(
+    name = "tslib",
+    srcs = [
+        "//:node_modules/tslib/tslib.js",
+    ],
+    outs = [
+        "tslib.js",
+    ],
+    cmd = "cp $< $@",
+)
+
+ts_devserver(
+    name = "devserver",
+    entry_module = "angular/modules/benchmarks/src/largetable/render3/index",
+    serving_path = "/bundle.min.js",
+    static_files = [
+        "index.html",
+        ":tslib"
+    ],
+    deps = [":largetable_lib"],
 )

@@ -51,17 +51,17 @@ export function buildTable(): TableCell[][] {
   return tableCreateCount % 2 ? numberData : charData;
 }
 
-let table: TableComponent;
+let table: LargeTableComponent;
 @Component({
   selector: 'table-comp',
   template: `
-    <button (click)="create()">Create</button>
-    <button (click)="destroy()">Destroy</button>
+    <button (click)="profileCreate()">Create</button>
+    <button (click)="profileUpdate()">Destroy</button>
     
     <table>
       <tbody>
-      <tr *ngFor="let row of data">
-        <td *ngFor="let cell of row" [style.background-color]="cell.row % 2 ? '' : 'grey'">
+      <tr *ngFor="let row of data; trackBy: trackByIndex">
+        <td *ngFor="let cell of row; trackBy: trackByIndex" [style.background-color]="cell.row % 2 ? '' : 'grey'">
           {{ cell.value }}
         </td>
       </tr>
@@ -69,14 +69,15 @@ let table: TableComponent;
     </table>
   `,
 })
-export class TableComponent {
+export class LargeTableComponent {
   @Input()
   data = emptyTable;
 
   constructor() {
-    setTimeout(() => {
-      this.profileCreate();
-    }, 1000);
+  }
+
+  trackByIndex(index: number, item: any) {
+    return index;
   }
 
   create() {
@@ -102,7 +103,7 @@ export function profile(create: () => void, destroy: () => void, name: string) {
     window.console.profile(name);
     let duration = 0;
     let count = 0;
-    while (count++ < 20) {
+    while (count++ < 150) {
       const start = window.performance.now();
       create();
       duration += window.performance.now() - start;
@@ -125,11 +126,7 @@ export function profile(create: () => void, destroy: () => void, name: string) {
                // TODO(misko): inject does not work since it needs to be directiveInject
                // inject(IterableDiffers, defaultIterableDiffers)
                defaultIterableDiffers),
-  features: [NgOnChangesFeature({
-    ngForOf: 'ngForOf',
-    ngForTrackBy: 'ngForTrackBy',
-    ngForTemplate: 'ngForTemplate',
-  })],
+  features: [],
   inputs: {
     ngForOf: 'ngForOf',
     ngForTrackBy: 'ngForTrackBy',
@@ -145,10 +142,10 @@ export function profile(create: () => void, destroy: () => void, name: string) {
   inputs: {ngIf: 'ngIf', ngIfThen: 'ngIfThen', ngIfElse: 'ngIfElse'}
 });
 
-@NgModule({declarations: [TableComponent], imports: [CommonModule]})
+@NgModule({declarations: [LargeTableComponent], imports: [CommonModule]})
 export class ToDoAppModule {
 }
 
 // TODO(misko): create cleaner way to publish component into global location for tests.
-(window as any).toDoAppComponent = renderComponent(TableComponent);
+(window as any).largeTableComponent = renderComponent(LargeTableComponent);
 

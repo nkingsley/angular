@@ -14,18 +14,7 @@ PACKAGES=(core
   animations
   platform-browser
   platform-browser-dynamic
-  forms
-  http
-  platform-server
-  platform-webworker
-  platform-webworker-dynamic
-  upgrade
-  router
-  compiler-cli
-  language-service
-  benchpress
-  service-worker
-  elements)
+  benchpress)
 
 TSC_PACKAGES=(compiler-cli
   language-service
@@ -362,20 +351,20 @@ fi
 
 if [[ ${BUILD_ALL} == true && ${TYPECHECK_ALL} == true ]]; then
   travisFoldStart "clean dist" "no-xtrace"
-    rm -rf ./dist/all/
-    rm -rf ./dist/packages
+
+
   travisFoldEnd "clean dist"
 
   travisFoldStart "copy e2e files" "no-xtrace"
-    mkdir -p ./dist/all/
+
 
     (
       echo "====== Copying files needed for e2e tests ====="
-      cp -r ./modules/playground ./dist/all/
-      cp -r ./modules/playground/favicon.ico ./dist/
+
+
       #rsync -aP ./modules/playground/* ./dist/all/playground/
       mkdir ./dist/all/playground/vendor
-      cd ./dist/all/playground/vendor
+
       ln -s ../../../../node_modules/core-js/client/core.js .
       ln -s ../../../../node_modules/zone.js/dist/zone.js .
       ln -s ../../../../node_modules/zone.js/dist/long-stack-trace-zone.js .

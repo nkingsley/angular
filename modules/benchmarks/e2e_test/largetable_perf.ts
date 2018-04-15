@@ -100,7 +100,7 @@ describe('largetable benchmark perf', () => {
       id: config.id,
       url: config.url,
       ignoreBrowserSynchronization: config.ignoreBrowserSynchronization,
-      params: [{name: 'cols', value: 40}, {name: 'rows', value: 200}],
+      params: [{name: 'cols', value: 50}, {name: 'rows', value: 200}],
       prepare: config.worker.prepare,
       work: config.worker.work
     });

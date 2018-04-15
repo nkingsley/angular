@@ -11,7 +11,7 @@
 require('./dist/all/e2e_util/perf_util').readCommandLine();
 
 var CHROME_OPTIONS = {
-  'args': ['--js-flags=--expose-gc', '--no-sandbox'],
+  'args': ['--js-flags=--expose-gc', '--no-sandbox', '--incognito'],
   'perfLoggingPrefs': {
     'traceCategories': 'v8,blink.console,devtools.timeline,disabled-by-default-devtools.timeline'
   }
@@ -45,7 +45,7 @@ exports.config = {
   specs: ['dist/all/**/e2e_test/**/*_perf.js'],
   capabilities: process.env.TRAVIS ? BROWSER_CAPS.ChromeOnTravis : BROWSER_CAPS.LocalChrome,
   directConnect: true,
-  baseUrl: 'http://localhost:8000/',
+  baseUrl: 'http://localhost:5432/',
   framework: 'jasmine2',
   jasmineNodeOpts: {
     showColors: true,

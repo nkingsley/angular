@@ -76,7 +76,7 @@ describe('tree benchmark perf', () => {
 function runTreeBenchmark({id, benchmark, prepare, setup, work}: {
   id: string; benchmark: Benchmark, prepare ? () : void; setup ? () : void; work(): void;
 }) {
-  let params = [{name: 'depth', value: 11}];
+  let params = [{name: 'depth', value: 9}];
   if (benchmark.extraParams) {
     params = params.concat(benchmark.extraParams);
   }
