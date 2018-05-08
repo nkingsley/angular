@@ -453,5 +453,5 @@ export interface ClassProvider extends ClassSansProvider {
  *
  *
  */
-export type Provider =
-    TypeProvider | ValueProvider | ClassProvider | ExistingProvider | FactoryProvider | any[];
+export type Provider = TypeProvider | ValueProvider | ClassProvider | ConstructorSansProvider |
+    ExistingProvider | FactoryProvider | any[];

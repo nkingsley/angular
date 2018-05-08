@@ -68,31 +68,6 @@ export interface CreateComponentOptions {
 }
 
 
-/**
- * Bootstraps a component, then creates and returns a `ComponentRef` for that component.
- *
- * @param componentType Component to bootstrap
- * @param options Optional parameters which control bootstrapping
- */
-export function createComponentRef<T>(
-    componentType: ComponentType<T>, opts: CreateComponentOptions): viewEngine_ComponentRef<T> {
-  const component = renderComponent(componentType, opts);
-  const hostView = _getComponentHostLElementNode(component).data as LView;
-  const hostViewRef = createViewRef(hostView, component);
-  return {
-    location: {nativeElement: getHostElement(component)},
-    injector: opts.injector || NULL_INJECTOR,
-    instance: component,
-    hostView: hostViewRef,
-    changeDetectorRef: hostViewRef,
-    componentType: componentType,
-    // TODO: implement destroy and onDestroy
-    destroy: () => {},
-    onDestroy: (cb: Function) => {}
-  };
-}
-
-
 // TODO: A hack to not pull in the NullInjector from @angular/core.
 export const NULL_INJECTOR: Injector = {
   get: (token: any, notFoundValue?: any) => {

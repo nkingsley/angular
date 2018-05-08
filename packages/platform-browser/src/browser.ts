@@ -7,7 +7,7 @@
  */
 
 import {CommonModule, PlatformLocation, ɵPLATFORM_BROWSER_ID as PLATFORM_BROWSER_ID} from '@angular/common';
-import {APP_ID, ApplicationModule, ErrorHandler, ModuleWithProviders, NgModule, Optional, PLATFORM_ID, PLATFORM_INITIALIZER, PlatformRef, RendererFactory2, RootRenderer, Sanitizer, SkipSelf, StaticProvider, Testability, createPlatformFactory, platformCore, ɵAPP_ROOT as APP_ROOT} from '@angular/core';
+import {APP_ID, ApplicationModule, ErrorHandler, ModuleWithProviders, NgModule, NgZone, Optional, PLATFORM_ID, PLATFORM_INITIALIZER, PlatformRef, RendererFactory2, RootRenderer, Sanitizer, SkipSelf, StaticProvider, Testability, createPlatformFactory, platformCore, ɵAPP_ROOT as APP_ROOT} from '@angular/core';
 
 import {BrowserDomAdapter} from './browser/browser_adapter';
 import {BrowserPlatformLocation} from './browser/location/browser_platform_location';
@@ -63,34 +63,43 @@ export function _document(): any {
   return document;
 }
 
+export const BROWSER_MODULE_PROVIDERS: StaticProvider[] = [
+  BROWSER_SANITIZATION_PROVIDERS,
+  {provide: APP_ROOT, useValue: true},
+  {provide: ErrorHandler, useFactory: errorHandler, deps: []},
+  {
+    provide: EVENT_MANAGER_PLUGINS,
+    useClass: DomEventsPlugin,
+    multi: true,
+    deps: [DOCUMENT, NgZone]
+  },
+  {provide: EVENT_MANAGER_PLUGINS, useClass: KeyEventsPlugin, multi: true, deps: [DOCUMENT]},
+  {
+    provide: EVENT_MANAGER_PLUGINS,
+    useClass: HammerGesturesPlugin,
+    multi: true,
+    deps: [DOCUMENT, HAMMER_GESTURE_CONFIG]
+  },
+  {provide: HAMMER_GESTURE_CONFIG, useClass: HammerGestureConfig, deps: []},
+  {provide: DomRendererFactory2, deps: [EventManager, DomSharedStylesHost]},
+  {provide: RendererFactory2, useExisting: DomRendererFactory2},
+  {provide: SharedStylesHost, useExisting: DomSharedStylesHost},
+  {provide: DomSharedStylesHost, deps: [DOCUMENT]},
+  {provide: Testability, deps: [NgZone]},
+  {provide: EventManager, deps: [EVENT_MANAGER_PLUGINS, NgZone]},
+  ELEMENT_PROBE_PROVIDERS,
+  {provide: Meta, deps: [DOCUMENT]},
+  {provide: Title, deps: [DOCUMENT]},
+];
+
 /**
  * The ng module for the browser.
  *
  *
  */
-@NgModule({
-  providers: [
-    BROWSER_SANITIZATION_PROVIDERS,
-    {provide: APP_ROOT, useValue: true},
-    {provide: ErrorHandler, useFactory: errorHandler, deps: []},
-    {provide: EVENT_MANAGER_PLUGINS, useClass: DomEventsPlugin, multi: true},
-    {provide: EVENT_MANAGER_PLUGINS, useClass: KeyEventsPlugin, multi: true},
-    {provide: EVENT_MANAGER_PLUGINS, useClass: HammerGesturesPlugin, multi: true},
-    {provide: HAMMER_GESTURE_CONFIG, useClass: HammerGestureConfig},
-    DomRendererFactory2,
-    {provide: RendererFactory2, useExisting: DomRendererFactory2},
-    {provide: SharedStylesHost, useExisting: DomSharedStylesHost},
-    DomSharedStylesHost,
-    Testability,
-    EventManager,
-    ELEMENT_PROBE_PROVIDERS,
-    Meta,
-    Title,
-  ],
-  exports: [CommonModule, ApplicationModule]
-})
+@NgModule({providers: BROWSER_MODULE_PROVIDERS, exports: [CommonModule, ApplicationModule]})
 export class BrowserModule {
-  constructor(@Optional() @SkipSelf() parentModule: BrowserModule) {
+  constructor(@Optional() @SkipSelf() parentModule: BrowserModule|null) {
     if (parentModule) {
       throw new Error(
           `BrowserModule has already been loaded. If you need access to common directives such as NgIf and NgFor from a lazy loaded module, import CommonModule instead.`);
