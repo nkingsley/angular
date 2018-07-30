@@ -159,8 +159,6 @@ export function getPlatform(): PlatformRef|null {
 
 /**
  * Provides additional options to the bootstraping process.
- *
- *
  */
 export interface BootstrapOptions {
   /**
@@ -267,13 +265,11 @@ export class PlatformRef {
   bootstrapModule<M>(
       moduleType: Type<M>, compilerOptions: (CompilerOptions&BootstrapOptions)|
       Array<CompilerOptions&BootstrapOptions> = []): Promise<NgModuleRef<M>> {
-    const compilerFactory: CompilerFactory = this.injector.get(CompilerFactory);
     const options = optionsReducer({}, compilerOptions);
-    const compiler = compilerFactory.createCompiler([options]);
-
-    return compiler.compileModuleAsync(moduleType)
+    return compileModuleToModuleFactory(moduleType, this.injector, options)
         .then((moduleFactory) => this.bootstrapModuleFactory(moduleFactory, options));
   }
+
 
   private _moduleDoBootstrap(moduleRef: InternalNgModuleRef<any>): void {
     const appRef = moduleRef.injector.get(ApplicationRef) as ApplicationRef;
