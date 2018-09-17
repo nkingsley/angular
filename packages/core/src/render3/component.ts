@@ -14,7 +14,7 @@ import {Sanitizer} from '../sanitization/security';
 
 import {assertComponentType, assertDefined} from './assert';
 import {queueInitHooks, queueLifecycleHooks} from './hooks';
-import {CLEAN_PROMISE, baseDirectiveCreate, createLViewData, createTView, detectChangesInternal, enterView, executeInitAndContentHooks, getRootView, hostElement, initChangeDetectorIfExisting, leaveView, locateHostElement, setHostBindings, queueHostBindingForCheck,} from './instructions';
+import {CLEAN_PROMISE, baseDirectiveCreate, createLViewData, createTView, detectChangesInternal, enterView, executeInitAndContentHooks, getRootView, hostElement, initChangeDetectorIfExisting, leaveView, locateHostElement, resolveProvidersAndInstantiateComponent, setHostBindings, queueHostBindingForCheck,} from './instructions';
 import {ComponentDef, ComponentDefInternal, ComponentType} from './interfaces/definition';
 import {LElementNode} from './interfaces/node';
 import {RElement, RendererFactory3, domRendererFactory3} from './interfaces/renderer';
@@ -145,7 +145,8 @@ export function createRootComponent<T>(
     elementNode: LElementNode, componentDef: ComponentDef<T, string>, rootView: LViewData,
     rootContext: RootContext, hostFeatures: HostFeature[] | null): any {
   // Create directive instance with factory() and store at index 0 in directives array
-  const component = baseDirectiveCreate(0, componentDef.factory() as T, componentDef, elementNode);
+  const instance = resolveProvidersAndInstantiateComponent(0, componentDef);
+  const component = baseDirectiveCreate(instance, componentDef, elementNode);
 
   if (componentDef.hostBindings) queueHostBindingForCheck(0, componentDef.hostVars);
   rootContext.components.push(component);

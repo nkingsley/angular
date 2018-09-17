@@ -6,13 +6,13 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-
-import {DoCheck, Input, TemplateRef, ViewContainerRef, ViewEncapsulation, createInjector, defineInjectable, defineInjector} from '../../src/core';
+import {Component, Directive, ElementRef, Injectable, InjectionToken, ViewEncapsulation, createInjector, defineInjectable, defineInjector, inject} from '../../src/core';
+import {injectInjectorOnly, setInjectImplementation} from '../../src/di/injector';
 import {getRenderedText} from '../../src/render3/component';
-import {AttributeMarker, ComponentFactory, LifecycleHooksFeature, defineComponent, directiveInject, markDirty, template} from '../../src/render3/index';
-import {bind, container, containerRefreshEnd, containerRefreshStart, element, elementEnd, elementProperty, elementStart, embeddedViewEnd, embeddedViewStart, nextContext, text, textBinding, tick} from '../../src/render3/instructions';
-import {ComponentDefInternal, DirectiveDefInternal, RenderFlags} from '../../src/render3/interfaces/definition';
-import {createRendererType2} from '../../src/view/index';
+
+import {AttributeMarker, ComponentFactory, LifecycleHooksFeature, defineComponent, defineDirective, directiveInject, markDirty, template, ProvidersFeature} from '../../src/render3/index';
+import {bind, container, containerRefreshEnd, containerRefreshStart, element, elementEnd, elementProperty, elementStart, embeddedViewEnd, embeddedViewStart, nextContext, text, textBinding, tick, projectionDef, projection} from '../../src/render3/instructions';
+import {ComponentDefInternal, RenderFlags} from '../../src/render3/interfaces/definition';
 
 import {NgIf} from './common_with_def';
 import {getRendererFactory2} from './imported_renderer2';
@@ -559,6 +559,1392 @@ describe('recursive components', () => {
       {propName: 'minifiedName', templateName: 'unminifiedName'}
     ]).toEqual(testInputsComponentFactory.inputs);
 
+  });
+
+});
+
+describe('providers', () => {
+  // Needed for test which are unit testing `inject`
+  afterEach(() => { setInjectImplementation(injectInjectorOnly); });
+
+  abstract class Greeter { abstract greet: string; }
+
+  class GreeterClass implements Greeter {
+    greet = 'Hi class';
+  }
+
+  class GreeterDeps implements Greeter {
+    constructor(public greet: string) {}
+  }
+
+  class GreeterBuiltInDeps implements Greeter {
+    public greet: string;
+    constructor(private message: string, private elementRef: ElementRef) {
+      this.greet = this.message + this.elementRef.nativeElement.tagName;
+    }
+  }
+
+  class GreeterProvider {
+    provide() { return 'Coucou'; }
+  }
+
+  @Injectable()
+  class GreeterInj implements Greeter {
+    public greet: string;
+    constructor(private provider: GreeterProvider) { this.greet = this.provider.provide(); }
+
+    static ngInjectableDef =
+        defineInjectable({factory: () => new GreeterInj(inject(GreeterProvider as any))});
+  }
+
+  class MyModule {
+    static ngInjectorDef = defineInjector(
+        {factory: () => new MyModule(), providers: [{provide: Greeter, useValue: {greet: 'Hi'}}]});
+  }
+
+  describe('should support all types of Provider:', () => {
+    it('TypeProvider', () => {
+      @Component({
+        template: '{{greeter.greet()}}',
+        providers: [GreeterClass],
+      })
+      class ComponentWithProviders {
+        constructor(private greeter: GreeterClass) {}
+
+        static ngComponentDef = defineComponent({
+          type: ComponentWithProviders,
+          selectors: [['component-with-providers']],
+          factory: () => new ComponentWithProviders(directiveInject(GreeterClass as any)),
+          consts: 1,
+          vars: 1,
+          template: function(fs: RenderFlags, ctx: ComponentWithProviders) {
+            if (fs & RenderFlags.Create) {
+              text(0);
+            }
+            if (fs & RenderFlags.Update) {
+              textBinding(0, bind(ctx.greeter.greet));
+            }
+          },
+          features: [ProvidersFeature([GreeterClass])]
+        });
+      }
+
+      const fixture = new ComponentFixture(ComponentWithProviders);
+      expect(fixture.html).toEqual('Hi class');
+    });
+
+    it('ValueProvider', () => {
+      @Component({
+        template: '{{greeter.greet()}}',
+        providers: [{provide: Greeter, useValue: {greet: 'Hallo'}}],
+      })
+      class ComponentWithProviders {
+        constructor(private greeter: Greeter) {}
+
+        static ngComponentDef = defineComponent({
+          type: ComponentWithProviders,
+          selectors: [['component-with-providers']],
+          factory: () => new ComponentWithProviders(directiveInject(Greeter as any)),
+          consts: 1,
+          vars: 1,
+          template: function(fs: RenderFlags, ctx: ComponentWithProviders) {
+            if (fs & RenderFlags.Create) {
+              text(0);
+            }
+            if (fs & RenderFlags.Update) {
+              textBinding(0, bind(ctx.greeter.greet));
+            }
+          },
+          features: [ProvidersFeature([{provide: Greeter, useValue: {greet: 'Hallo'}}])]
+        });
+      }
+
+      const fixture = new ComponentFixture(ComponentWithProviders);
+      expect(fixture.html).toEqual('Hallo');
+    });
+
+    it('ClassProvider', () => {
+      @Component({
+        template: '{{greeter.greet()}}',
+        providers: [{provide: Greeter, useClass: GreeterClass}],
+      })
+      class ComponentWithProviders {
+        constructor(private greeter: Greeter) {}
+
+        static ngComponentDef = defineComponent({
+          type: ComponentWithProviders,
+          selectors: [['component-with-providers']],
+          factory: () => new ComponentWithProviders(directiveInject(Greeter as any)),
+          consts: 1,
+          vars: 1,
+          template: function(fs: RenderFlags, ctx: ComponentWithProviders) {
+            if (fs & RenderFlags.Create) {
+              text(0);
+            }
+            if (fs & RenderFlags.Update) {
+              textBinding(0, bind(ctx.greeter.greet));
+            }
+          },
+          features: [ProvidersFeature([{provide: Greeter, useClass: GreeterClass}])]
+        });
+      }
+
+      const fixture = new ComponentFixture(ComponentWithProviders);
+      expect(fixture.html).toEqual('Hi class');
+    });
+
+    it('ExistingProvider', () => {
+      @Component({
+        template: '{{greeter.greet()}}',
+        providers: [GreeterClass, {provide: Greeter, useExisting: GreeterClass}],
+      })
+      class ComponentWithProviders {
+        constructor(private greeter: Greeter) {}
+
+        static ngComponentDef = defineComponent({
+          type: ComponentWithProviders,
+          selectors: [['component-with-providers']],
+          factory: () => new ComponentWithProviders(directiveInject(Greeter as any)),
+          consts: 1,
+          vars: 1,
+          template: function(fs: RenderFlags, ctx: ComponentWithProviders) {
+            if (fs & RenderFlags.Create) {
+              text(0);
+            }
+            if (fs & RenderFlags.Update) {
+              textBinding(0, bind(ctx.greeter.greet));
+            }
+          },
+          features:
+              [ProvidersFeature([GreeterClass, {provide: Greeter, useExisting: GreeterClass}])]
+        });
+      }
+
+      const fixture = new ComponentFixture(ComponentWithProviders);
+      expect(fixture.html).toEqual('Hi class');
+    });
+
+    it('FactoryProvider', () => {
+      @Component({
+        template: '{{greeter.greet()}}',
+        providers: [{provide: Greeter, useFactory: () => new GreeterClass()}],
+      })
+      class ComponentWithProviders {
+        constructor(private greeter: Greeter) {}
+
+        static ngComponentDef = defineComponent({
+          type: ComponentWithProviders,
+          selectors: [['component-with-providers']],
+          factory: () => new ComponentWithProviders(directiveInject(Greeter as any)),
+          consts: 1,
+          vars: 1,
+          template: function(fs: RenderFlags, ctx: ComponentWithProviders) {
+            if (fs & RenderFlags.Create) {
+              text(0);
+            }
+            if (fs & RenderFlags.Update) {
+              textBinding(0, bind(ctx.greeter.greet));
+            }
+          },
+          features:
+              [ProvidersFeature([{provide: Greeter, useFactory: () => new GreeterClass()}])]
+        });
+      }
+
+      const fixture = new ComponentFixture(ComponentWithProviders);
+      expect(fixture.html).toEqual('Hi class');
+    });
+
+    const MESSAGE = new InjectionToken<string>('message');
+
+    it('ClassProvider with deps', () => {
+      @Component({
+        template: '{{greeter.greet()}}',
+        providers: [
+          {provide: MESSAGE, useValue: 'Cześć'},
+          {provide: Greeter, useClass: GreeterDeps, deps: [MESSAGE]}
+        ],
+      })
+      class ComponentWithProviders {
+        constructor(private greeter: Greeter) {}
+
+        static ngComponentDef = defineComponent({
+          type: ComponentWithProviders,
+          selectors: [['component-with-providers']],
+          factory: () => new ComponentWithProviders(directiveInject(Greeter as any)),
+          consts: 1,
+          vars: 1,
+          template: function(fs: RenderFlags, ctx: ComponentWithProviders) {
+            if (fs & RenderFlags.Create) {
+              text(0);
+            }
+            if (fs & RenderFlags.Update) {
+              textBinding(0, bind(ctx.greeter.greet));
+            }
+          },
+          features: [ProvidersFeature([
+            {provide: MESSAGE, useValue: 'Cześć'},
+            {provide: Greeter, useClass: GreeterDeps, deps: [MESSAGE]}
+          ])]
+        });
+      }
+
+      const fixture = new ComponentFixture(ComponentWithProviders);
+      expect(fixture.html).toEqual('Cześć');
+    });
+
+    // TODO: enable once built-ins tokens (ElementRef, etc) are refactored to become Injectable
+    xit('ClassProvider with built-in deps', () => {
+      @Component({
+        template: '{{greeter.greet()}}',
+        providers: [
+          {provide: MESSAGE, useValue: 'Cześć'},
+          {provide: Greeter, useClass: GreeterBuiltInDeps, deps: [MESSAGE, ElementRef]}
+        ],
+      })
+      class ComponentWithProviders {
+        constructor(private greeter: Greeter) {}
+
+        static ngComponentDef = defineComponent({
+          type: ComponentWithProviders,
+          selectors: [['component-with-providers']],
+          factory: () => new ComponentWithProviders(directiveInject(Greeter as any)),
+          consts: 1,
+          vars: 1,
+          template: function(fs: RenderFlags, ctx: ComponentWithProviders) {
+            if (fs & RenderFlags.Create) {
+              text(0);
+            }
+            if (fs & RenderFlags.Update) {
+              textBinding(0, bind(ctx.greeter.greet));
+            }
+          },
+          features: [ProvidersFeature([
+            {provide: MESSAGE, useValue: 'Cześć'},
+            {provide: Greeter, useClass: GreeterBuiltInDeps, deps: [MESSAGE, ElementRef]}
+          ])]
+        });
+      }
+
+      const fixture = new ComponentFixture(ComponentWithProviders);
+      expect(fixture.html).toEqual('Cześć');
+    });
+
+    it('FactoryProvider with deps', () => {
+      @Component({
+        template: '{{greeter.greet()}}',
+        providers: [
+          {provide: MESSAGE, useValue: 'Cześć'},
+          {provide: Greeter, useFactory: (msg: string) => new GreeterDeps(msg), deps: [MESSAGE]}
+        ],
+      })
+      class ComponentWithProviders {
+        constructor(private greeter: Greeter) {}
+
+        static ngComponentDef = defineComponent({
+          type: ComponentWithProviders,
+          selectors: [['component-with-providers']],
+          factory: () => new ComponentWithProviders(directiveInject(Greeter as any)),
+          consts: 1,
+          vars: 1,
+          template: function(fs: RenderFlags, ctx: ComponentWithProviders) {
+            if (fs & RenderFlags.Create) {
+              text(0);
+            }
+            if (fs & RenderFlags.Update) {
+              textBinding(0, bind(ctx.greeter.greet));
+            }
+          },
+          features: [ProvidersFeature([
+            {provide: MESSAGE, useValue: 'Cześć'}, {
+              provide: Greeter,
+              useFactory: (msg: string) => new GreeterDeps(msg),
+              deps: [MESSAGE]
+            }
+          ])]
+        });
+      }
+
+      const fixture = new ComponentFixture(ComponentWithProviders);
+      expect(fixture.html).toEqual('Cześć');
+    });
+
+    // TODO: enable once built-ins tokens (ElementRef, etc) are refactored to become Injectable
+    xit('FactoryProvider with built-in deps', () => {
+      @Component({
+        template: '{{greeter.greet()}}',
+        providers: [
+          {provide: MESSAGE, useValue: 'Cześć'}, {
+            provide: Greeter,
+            useFactory: (msg: string, elementRef: ElementRef) =>
+                            new GreeterBuiltInDeps(msg, elementRef),
+            deps: [MESSAGE, ElementRef]
+          }
+        ],
+      })
+      class ComponentWithProviders {
+        constructor(private greeter: Greeter) {}
+
+        static ngComponentDef = defineComponent({
+          type: ComponentWithProviders,
+          selectors: [['component-with-providers']],
+          factory: () => new ComponentWithProviders(directiveInject(Greeter as any)),
+          consts: 1,
+          vars: 1,
+          template: function(fs: RenderFlags, ctx: ComponentWithProviders) {
+            if (fs & RenderFlags.Create) {
+              text(0);
+            }
+            if (fs & RenderFlags.Update) {
+              textBinding(0, bind(ctx.greeter.greet));
+            }
+          },
+          features: [ProvidersFeature([
+            {provide: MESSAGE, useValue: 'Cześć'}, {
+              provide: Greeter,
+              useFactory: (msg: string, elementRef: ElementRef) =>
+                              new GreeterBuiltInDeps(msg, elementRef),
+              deps: [MESSAGE, ElementRef]
+            }
+          ])]
+        });
+      }
+
+      const fixture = new ComponentFixture(ComponentWithProviders);
+      expect(fixture.html).toEqual('Cześć');
+    });
+
+    it('ClassProvider with injectable', () => {
+      @Component({
+        template: '{{greeter.greet()}}',
+        providers: [GreeterProvider, {provide: Greeter, useClass: GreeterInj}],
+      })
+      class ComponentWithProviders {
+        constructor(private greeter: Greeter) {}
+
+        static ngComponentDef = defineComponent({
+          type: ComponentWithProviders,
+          selectors: [['component-with-providers']],
+          factory: () => new ComponentWithProviders(directiveInject(Greeter as any)),
+          consts: 1,
+          vars: 1,
+          template: function(fs: RenderFlags, ctx: ComponentWithProviders) {
+            if (fs & RenderFlags.Create) {
+              text(0);
+            }
+            if (fs & RenderFlags.Update) {
+              textBinding(0, bind(ctx.greeter.greet));
+            }
+          },
+          features:
+              [ProvidersFeature([GreeterProvider, {provide: Greeter, useClass: GreeterInj}])]
+        });
+      }
+
+      const fixture = new ComponentFixture(ComponentWithProviders);
+      expect(fixture.html).toEqual('Coucou');
+    });
+
+    it('array of providers', () => {
+      @Component({
+        template: '{{greeter.greet()}}',
+        providers: [[
+          {provide: Greeter, useValue: {greet: 'Ola'}},
+          {provide: Greeter, useValue: {greet: 'Hallo'}}
+        ]],
+      })
+      class ComponentWithProviders {
+        constructor(private greeter: Greeter) {}
+
+        static ngComponentDef = defineComponent({
+          type: ComponentWithProviders,
+          selectors: [['component-with-providers']],
+          factory: () => new ComponentWithProviders(directiveInject(Greeter as any)),
+          consts: 1,
+          vars: 1,
+          template: function(fs: RenderFlags, ctx: ComponentWithProviders) {
+            if (fs & RenderFlags.Create) {
+              text(0);
+            }
+            if (fs & RenderFlags.Update) {
+              textBinding(0, bind(ctx.greeter.greet));
+            }
+          },
+          features: [ProvidersFeature([[
+            {provide: Greeter, useValue: {greet: 'Ola'}},
+            {provide: Greeter, useValue: {greet: 'Hallo'}}
+          ]])]
+        });
+      }
+
+      const fixture = new ComponentFixture(ComponentWithProviders);
+      expect(fixture.html).toEqual('Hallo');
+    });
+  });
+
+  describe('and viewProviders', () => {
+    describe('without projection', () => {
+      it('should work without providers nor viewProviders in component, using module injector as backup',
+         () => {
+           @Component({template: '{{greeter.greet()}}'})
+           class ComponentWithProviders {
+             constructor(private greeter: Greeter) {}
+
+             static ngComponentDef = defineComponent({
+               type: ComponentWithProviders,
+               selectors: [['component-with-providers']],
+               factory: () => new ComponentWithProviders(directiveInject(Greeter as any)),
+               consts: 1,
+               vars: 1,
+               template: function(fs: RenderFlags, ctx: ComponentWithProviders) {
+                 if (fs & RenderFlags.Create) {
+                   text(0);
+                 }
+                 if (fs & RenderFlags.Update) {
+                   textBinding(0, bind(ctx.greeter.greet));
+                 }
+               },
+             });
+           }
+
+           const fixture =
+               new ComponentFixture(ComponentWithProviders, {injector: createInjector(MyModule)});
+           expect(fixture.html).toEqual('Hi');
+         });
+
+      it('should work with only providers in component', () => {
+        @Component({
+          template: '{{greeter.greet()}}',
+          providers: [{provide: Greeter, useValue: {greet: 'Hallo'}}],
+        })
+        class ComponentWithProviders {
+          constructor(private greeter: Greeter) {}
+
+          static ngComponentDef = defineComponent({
+            type: ComponentWithProviders,
+            selectors: [['component-with-providers']],
+            factory: () => new ComponentWithProviders(directiveInject(Greeter as any)),
+            consts: 1,
+            vars: 1,
+            template: function(fs: RenderFlags, ctx: ComponentWithProviders) {
+              if (fs & RenderFlags.Create) {
+                text(0);
+              }
+              if (fs & RenderFlags.Update) {
+                textBinding(0, bind(ctx.greeter.greet));
+              }
+            },
+            features: [ProvidersFeature([{provide: Greeter, useValue: {greet: 'Hallo'}}])]
+          });
+        }
+
+        const fixture =
+            new ComponentFixture(ComponentWithProviders, {injector: createInjector(MyModule)});
+        expect(fixture.html).toEqual('Hallo');
+      });
+
+      it('should work with only viewProviders in component', () => {
+        @Component({
+          template: '{{greeter.greet()}}',
+          viewProviders: [{provide: Greeter, useValue: {greet: 'Hallo'}}],
+        })
+        class ComponentWithProviders {
+          constructor(private greeter: Greeter) {}
+
+          static ngComponentDef = defineComponent({
+            type: ComponentWithProviders,
+            selectors: [['component-with-providers']],
+            factory: () => new ComponentWithProviders(directiveInject(Greeter as any)),
+            consts: 1,
+            vars: 1,
+            template: function(fs: RenderFlags, ctx: ComponentWithProviders) {
+              if (fs & RenderFlags.Create) {
+                text(0);
+              }
+              if (fs & RenderFlags.Update) {
+                textBinding(0, bind(ctx.greeter.greet));
+              }
+            },
+            features: [ProvidersFeature([], [{provide: Greeter, useValue: {greet: 'Hallo'}}])]
+          });
+        }
+
+        const fixture =
+            new ComponentFixture(ComponentWithProviders, {injector: createInjector(MyModule)});
+        expect(fixture.html).toEqual('Hallo');
+      });
+
+      it('should work with both providers and viewProviders in component, using viewProviders',
+         () => {
+           @Component({
+             template: '{{greeter.greet()}}',
+             providers: [{provide: Greeter, useValue: {greet: 'Hallo'}}],
+             viewProviders: [{provide: Greeter, useValue: {greet: 'Bonjour'}}],
+           })
+           class ComponentWithProviders {
+             constructor(private greeter: Greeter) {}
+
+             static ngComponentDef = defineComponent({
+               type: ComponentWithProviders,
+               selectors: [['component-with-providers']],
+               factory: () => new ComponentWithProviders(directiveInject(Greeter as any)),
+               consts: 1,
+               vars: 1,
+               template: function(fs: RenderFlags, ctx: ComponentWithProviders) {
+                 if (fs & RenderFlags.Create) {
+                   text(0);
+                 }
+                 if (fs & RenderFlags.Update) {
+                   textBinding(0, bind(ctx.greeter.greet));
+                 }
+               },
+               features: [ProvidersFeature(
+                   [{provide: Greeter, useValue: {greet: 'Hallo'}}],
+                   [{provide: Greeter, useValue: {greet: 'Bonjour'}}])]
+             });
+           }
+
+           const fixture =
+               new ComponentFixture(ComponentWithProviders, {injector: createInjector(MyModule)});
+           expect(fixture.html).toEqual('Bonjour');
+         });
+    });
+
+    describe('with projection', () => {
+      @Component({template: '{{greeter.greet()}}'})
+      class GreeterComponent {
+        constructor(private greeter: Greeter) {}
+
+        static ngComponentDef = defineComponent({
+          type: GreeterComponent,
+          selectors: [['greeter']],
+          factory: () => new GreeterComponent(directiveInject(Greeter as any)),
+          consts: 1,
+          vars: 1,
+          template: function(fs: RenderFlags, ctx: GreeterComponent) {
+            if (fs & RenderFlags.Create) {
+              text(0);
+            }
+            if (fs & RenderFlags.Update) {
+              textBinding(0, bind(ctx.greeter.greet));
+            }
+          },
+        });
+      }
+
+      it('should work without providers nor viewProviders in component, using module injector as backup',
+         () => {
+           @Component({template: '<greeter></greeter> - Projected: <ng-content></ng-content>'})
+           class ProjectorComponent {
+             static ngComponentDef = defineComponent({
+               type: ProjectorComponent,
+               selectors: [['projector']],
+               factory: () => new ProjectorComponent(),
+               consts: 3,
+               vars: 0,
+               template: function(fs: RenderFlags, ctx: ProjectorComponent) {
+                 if (fs & RenderFlags.Create) {
+                   projectionDef();
+                   element(0, 'greeter');
+                   text(1, ' - Projected: ');
+                   projection(2);
+                 }
+               },
+               directives: [GreeterComponent]
+             });
+           }
+
+           @Component({template: '<projector><greeter></greeter></projector>'})
+           class RootComponent {
+             static ngComponentDef = defineComponent({
+               type: RootComponent,
+               selectors: [['root']],
+               factory: () => new RootComponent(),
+               consts: 2,
+               vars: 0,
+               template: function(fs: RenderFlags, ctx: RootComponent) {
+                 if (fs & RenderFlags.Create) {
+                   elementStart(0, 'projector');
+                   element(1, 'greeter');
+                   elementEnd();
+                 }
+               },
+               directives: [ProjectorComponent, GreeterComponent]
+             });
+           }
+
+           const fixture =
+               new ComponentFixture(RootComponent, {injector: createInjector(MyModule)});
+           expect(fixture.html)
+               .toEqual(
+                   '<projector><greeter>Hi</greeter> - Projected: <greeter>Hi</greeter></projector>');
+         });
+
+      it('should work without providers nor viewProviders in component, using parent element injector as backup',
+         () => {
+           @Component({template: '<greeter></greeter> - Projected: <ng-content></ng-content>'})
+           class ProjectorComponent {
+             static ngComponentDef = defineComponent({
+               type: ProjectorComponent,
+               selectors: [['projector']],
+               factory: () => new ProjectorComponent(),
+               consts: 3,
+               vars: 0,
+               template: function(fs: RenderFlags, ctx: ProjectorComponent) {
+                 if (fs & RenderFlags.Create) {
+                   projectionDef();
+                   element(0, 'greeter');
+                   text(1, ' - Projected: ');
+                   projection(2);
+                 }
+               },
+               directives: [GreeterComponent]
+             });
+           }
+
+           @Component({
+             template: '<projector><greeter></greeter></projector>',
+             providers: [{provide: Greeter, useValue: {greet: 'Bonjour'}}],
+           })
+           class RootComponent {
+             static ngComponentDef = defineComponent({
+               type: RootComponent,
+               selectors: [['root']],
+               factory: () => new RootComponent(),
+               consts: 2,
+               vars: 0,
+               template: function(fs: RenderFlags, ctx: RootComponent) {
+                 if (fs & RenderFlags.Create) {
+                   elementStart(0, 'projector');
+                   element(1, 'greeter');
+                   elementEnd();
+                 }
+               },
+               directives: [ProjectorComponent, GreeterComponent],
+               features: [ProvidersFeature([{provide: Greeter, useValue: {greet: 'Bonjour'}}])]
+             });
+           }
+
+           const fixture =
+               new ComponentFixture(RootComponent, {injector: createInjector(MyModule)});
+           expect(fixture.html)
+               .toEqual(
+                   '<projector><greeter>Bonjour</greeter> - Projected: <greeter>Bonjour</greeter></projector>');
+         });
+
+      it('should work with providers only in component', () => {
+        @Component({
+          template: '<greeter></greeter> - Projected: <ng-content></ng-content>',
+          providers: [{provide: Greeter, useValue: {greet: 'Hallo'}}],
+        })
+        class ProjectorComponent {
+          static ngComponentDef = defineComponent({
+            type: ProjectorComponent,
+            selectors: [['projector']],
+            factory: () => new ProjectorComponent(),
+            consts: 3,
+            vars: 0,
+            template: function(fs: RenderFlags, ctx: ProjectorComponent) {
+              if (fs & RenderFlags.Create) {
+                projectionDef();
+                element(0, 'greeter');
+                text(1, ' - Projected: ');
+                projection(2);
+              }
+            },
+            directives: [GreeterComponent],
+            features: [ProvidersFeature([{provide: Greeter, useValue: {greet: 'Hallo'}}])]
+          });
+        }
+
+        @Component({
+          template: '<projector><greeter></greeter></projector>',
+          providers: [{provide: Greeter, useValue: {greet: 'Bonjour'}}],
+        })
+        class RootComponent {
+          static ngComponentDef = defineComponent({
+            type: RootComponent,
+            selectors: [['root']],
+            factory: () => new RootComponent(),
+            consts: 2,
+            vars: 0,
+            template: function(fs: RenderFlags, ctx: RootComponent) {
+              if (fs & RenderFlags.Create) {
+                elementStart(0, 'projector');
+                element(1, 'greeter');
+                elementEnd();
+              }
+            },
+            directives: [ProjectorComponent, GreeterComponent],
+            features: [ProvidersFeature([{provide: Greeter, useValue: {greet: 'Bonjour'}}])]
+          });
+        }
+
+        const fixture = new ComponentFixture(RootComponent, {injector: createInjector(MyModule)});
+        expect(fixture.html)
+            .toEqual(
+                '<projector><greeter>Hallo</greeter> - Projected: <greeter>Hallo</greeter></projector>');
+      });
+
+      it('should work with viewProviders only in component', () => {
+        @Component({
+          template: '<greeter></greeter> - Projected: <ng-content></ng-content>',
+          viewProviders: [{provide: Greeter, useValue: {greet: 'Ola'}}],
+        })
+        class ProjectorComponent {
+          static ngComponentDef = defineComponent({
+            type: ProjectorComponent,
+            selectors: [['projector']],
+            factory: () => new ProjectorComponent(),
+            consts: 3,
+            vars: 0,
+            template: function(fs: RenderFlags, ctx: ProjectorComponent) {
+              if (fs & RenderFlags.Create) {
+                projectionDef();
+                element(0, 'greeter');
+                text(1, ' - Projected: ');
+                projection(2);
+              }
+            },
+            directives: [GreeterComponent],
+            features: [ProvidersFeature([], [{provide: Greeter, useValue: {greet: 'Ola'}}])]
+          });
+        }
+
+        @Component({
+          template: '<projector><greeter></greeter></projector>',
+          providers: [{provide: Greeter, useValue: {greet: 'Bonjour'}}],
+        })
+        class RootComponent {
+          static ngComponentDef = defineComponent({
+            type: RootComponent,
+            selectors: [['root']],
+            factory: () => new RootComponent(),
+            consts: 2,
+            vars: 0,
+            template: function(fs: RenderFlags, ctx: RootComponent) {
+              if (fs & RenderFlags.Create) {
+                elementStart(0, 'projector');
+                element(1, 'greeter');
+                elementEnd();
+              }
+            },
+            directives: [ProjectorComponent, GreeterComponent],
+            features: [ProvidersFeature([{provide: Greeter, useValue: {greet: 'Bonjour'}}])]
+          });
+        }
+
+        const fixture = new ComponentFixture(RootComponent, {injector: createInjector(MyModule)});
+        expect(fixture.html)
+            .toEqual(
+                '<projector><greeter>Ola</greeter> - Projected: <greeter>Bonjour</greeter></projector>');
+      });
+
+      it('should work with both providers and viewProviders in component', () => {
+        @Component({
+          template: '<greeter></greeter> - Projected: <ng-content></ng-content>',
+          providers: [{provide: Greeter, useValue: {greet: 'Hallo'}}],
+          viewProviders: [{provide: Greeter, useValue: {greet: 'Ola'}}],
+        })
+        class ProjectorComponent {
+          static ngComponentDef = defineComponent({
+            type: ProjectorComponent,
+            selectors: [['projector']],
+            factory: () => new ProjectorComponent(),
+            consts: 3,
+            vars: 0,
+            template: function(fs: RenderFlags, ctx: ProjectorComponent) {
+              if (fs & RenderFlags.Create) {
+                projectionDef();
+                element(0, 'greeter');
+                text(1, ' - Projected: ');
+                projection(2);
+              }
+            },
+            directives: [GreeterComponent],
+            features: [ProvidersFeature(
+                [{provide: Greeter, useValue: {greet: 'Hallo'}}],
+                [{provide: Greeter, useValue: {greet: 'Ola'}}])]
+          });
+        }
+
+        @Component({
+          template: '<projector><greeter></greeter></projector>',
+          providers: [{provide: Greeter, useValue: {greet: 'Bonjour'}}],
+        })
+        class RootComponent {
+          static ngComponentDef = defineComponent({
+            type: RootComponent,
+            selectors: [['root']],
+            factory: () => new RootComponent(),
+            consts: 2,
+            vars: 0,
+            template: function(fs: RenderFlags, ctx: RootComponent) {
+              if (fs & RenderFlags.Create) {
+                elementStart(0, 'projector');
+                element(1, 'greeter');
+                elementEnd();
+              }
+            },
+            directives: [ProjectorComponent, GreeterComponent],
+            features: [ProvidersFeature([{provide: Greeter, useValue: {greet: 'Bonjour'}}])]
+          });
+        }
+
+        const fixture = new ComponentFixture(RootComponent, {injector: createInjector(MyModule)});
+        expect(fixture.html)
+            .toEqual(
+                '<projector><greeter>Ola</greeter> - Projected: <greeter>Hallo</greeter></projector>');
+      });
+    });
+  });
+
+  describe('in directives', () => {
+    it('should support several directives providing the same token (order in ngComponentDef.directives matters)',
+       () => {
+         const log: string[] = [];
+
+         @Directive({selector: '[traducteur]'})
+         class TraducteurDirective {
+           constructor(private greeter: Greeter) { log.push(greeter.greet); }
+
+           static ngDirectiveDef = defineDirective({
+             type: TraducteurDirective,
+             selectors: [['', 'traducteur', '']],
+             factory: () => new TraducteurDirective(directiveInject(Greeter as any)),
+             features: [ProvidersFeature([{provide: Greeter, useValue: {greet: 'Bonjour'}}])]
+           });
+         }
+
+         @Directive({selector: '[translator]'})
+         class TranslatorDirective {
+           constructor(private greeter: Greeter) { log.push(greeter.greet); }
+
+           static ngDirectiveDef = defineDirective({
+             type: TranslatorDirective,
+             selectors: [['', 'translator', '']],
+             factory: () => new TranslatorDirective(directiveInject(Greeter as any)),
+             features: [ProvidersFeature([{provide: Greeter, useValue: {greet: 'Hallo'}}])]
+           });
+         }
+
+         @Component({
+           template: '{{greeter.greet()}}',
+           providers: [{provide: Greeter, useValue: {greet: 'Hi'}}]
+         })
+         class GreeterComponent {
+           constructor(private greeter: Greeter) { log.push(greeter.greet); }
+
+           static ngComponentDef = defineComponent({
+             type: GreeterComponent,
+             selectors: [['greeter']],
+             factory: () => new GreeterComponent(directiveInject(Greeter as any)),
+             consts: 1,
+             vars: 1,
+             template: function(fs: RenderFlags, ctx: GreeterComponent) {
+               if (fs & RenderFlags.Create) {
+                 text(0);
+               }
+               if (fs & RenderFlags.Update) {
+                 textBinding(0, bind(ctx.greeter.greet));
+               }
+             },
+             features: [ProvidersFeature([{provide: Greeter, useValue: {greet: 'Hi'}}])]
+           });
+         }
+
+         @Component({
+           template: '<greeter translator="" traducteur=""></greeter>',
+           providers: [{provide: Greeter, useValue: {greet: 'Ola'}}],
+         })
+         class RootComponent {
+           constructor(private greeter: Greeter) { log.push(greeter.greet); }
+           static ngComponentDef = defineComponent({
+             type: RootComponent,
+             selectors: [['root']],
+             factory: () => new RootComponent(directiveInject(Greeter as any)),
+             consts: 2,
+             vars: 0,
+             template: function(fs: RenderFlags, ctx: RootComponent) {
+               if (fs & RenderFlags.Create) {
+                 element(0, 'greeter', ['translator', '', 'traducteur', '']);
+               }
+             },
+             directives: [TranslatorDirective, TraducteurDirective, GreeterComponent],
+             features: [ProvidersFeature([{provide: Greeter, useValue: {greet: 'Ola'}}])]
+           });
+         }
+
+         const fixture = new ComponentFixture(RootComponent, {injector: createInjector(MyModule)});
+         expect(fixture.html).toEqual('<greeter traducteur="" translator="">Bonjour</greeter>');
+         expect(log).toEqual(['Ola', 'Bonjour', 'Bonjour', 'Bonjour']);
+       });
+  });
+
+  describe('multi', () => {
+    @Component({template: '{{greeter.greet()}}'})
+    class GreeterComponent {
+      constructor(private greeter: Greeter[]) {}
+
+      static ngComponentDef = defineComponent({
+        type: GreeterComponent,
+        selectors: [['greeter']],
+        factory: () => new GreeterComponent(directiveInject(Greeter as any)),
+        consts: 1,
+        vars: 1,
+        template: function(fs: RenderFlags, ctx: GreeterComponent) {
+          if (fs & RenderFlags.Create) {
+            text(0);
+          }
+          if (fs & RenderFlags.Update) {
+            textBinding(0, bind(ctx.greeter.map(g => g.greet).join(' - ')));
+          }
+        },
+      });
+    }
+
+    describe('without directive', () => {
+
+      it('should work when only providers in component', () => {
+        @Component({
+          template: '<greeter></greeter> - Projected: <ng-content></ng-content>',
+          providers: [{provide: Greeter, useValue: {greet: 'Hallo'}, multi: true}],
+        })
+        class ProjectorComponent {
+          static ngComponentDef = defineComponent({
+            type: ProjectorComponent,
+            selectors: [['projector']],
+            factory: () => new ProjectorComponent(),
+            consts: 3,
+            vars: 0,
+            template: function(fs: RenderFlags, ctx: ProjectorComponent) {
+              if (fs & RenderFlags.Create) {
+                projectionDef();
+                element(0, 'greeter');
+                text(1, ' - Projected: ');
+                projection(2);
+              }
+            },
+            directives: [GreeterComponent],
+            features:
+                [ProvidersFeature([{provide: Greeter, useValue: {greet: 'Hallo'}, multi: true}])]
+          });
+        }
+
+        @Component({template: '<projector><greeter></greeter></projector>'})
+        class RootComponent {
+          static ngComponentDef = defineComponent({
+            type: RootComponent,
+            selectors: [['root']],
+            factory: () => new RootComponent(),
+            consts: 2,
+            vars: 0,
+            template: function(fs: RenderFlags, ctx: RootComponent) {
+              if (fs & RenderFlags.Create) {
+                elementStart(0, 'projector');
+                element(1, 'greeter');
+                elementEnd();
+              }
+            },
+            directives: [ProjectorComponent, GreeterComponent]
+          });
+        }
+
+        const fixture = new ComponentFixture(RootComponent);
+        expect(fixture.html)
+            .toEqual(
+                '<projector><greeter>Hallo</greeter> - Projected: <greeter>Hallo</greeter></projector>');
+      });
+
+      it('should throw when only view providers in component', () => {
+        @Component({
+          template: '<greeter></greeter> - Projected: <ng-content></ng-content>',
+          viewProviders: [{provide: Greeter, useValue: {greet: 'Bonjour'}, multi: true}],
+        })
+        class ProjectorComponent {
+          static ngComponentDef = defineComponent({
+            type: ProjectorComponent,
+            selectors: [['projector']],
+            factory: () => new ProjectorComponent(),
+            consts: 3,
+            vars: 0,
+            template: function(fs: RenderFlags, ctx: ProjectorComponent) {
+              if (fs & RenderFlags.Create) {
+                projectionDef();
+                element(0, 'greeter');
+                text(1, ' - Projected: ');
+                projection(2);
+              }
+            },
+            directives: [GreeterComponent],
+            features: [ProvidersFeature(
+                [], [{provide: Greeter, useValue: {greet: 'Bonjour'}, multi: true}])]
+          });
+        }
+
+        @Component({template: '<projector><greeter></greeter></projector>'})
+        class RootComponent {
+          static ngComponentDef = defineComponent({
+            type: RootComponent,
+            selectors: [['root']],
+            factory: () => new RootComponent(),
+            consts: 2,
+            vars: 0,
+            template: function(fs: RenderFlags, ctx: RootComponent) {
+              if (fs & RenderFlags.Create) {
+                elementStart(0, 'projector');
+                element(1, 'greeter');
+                elementEnd();
+              }
+            },
+            directives: [ProjectorComponent, GreeterComponent]
+          });
+        }
+
+        expect(() => new ComponentFixture(RootComponent)).toThrow();
+      });
+
+      it('should work when both providers and view Providers in component', () => {
+        @Component({
+          template: '<greeter></greeter> - Projected: <ng-content></ng-content>',
+          providers: [{provide: Greeter, useValue: {greet: 'Hallo'}, multi: true}],
+          viewProviders: [{provide: Greeter, useValue: {greet: 'Bonjour'}, multi: true}],
+        })
+        class ProjectorComponent {
+          static ngComponentDef = defineComponent({
+            type: ProjectorComponent,
+            selectors: [['projector']],
+            factory: () => new ProjectorComponent(),
+            consts: 3,
+            vars: 0,
+            template: function(fs: RenderFlags, ctx: ProjectorComponent) {
+              if (fs & RenderFlags.Create) {
+                projectionDef();
+                element(0, 'greeter');
+                text(1, ' - Projected: ');
+                projection(2);
+              }
+            },
+            directives: [GreeterComponent],
+            features: [ProvidersFeature(
+                [{provide: Greeter, useValue: {greet: 'Hallo'}, multi: true}],
+                [{provide: Greeter, useValue: {greet: 'Bonjour'}, multi: true}])]
+          });
+        }
+
+        @Component({template: '<projector><greeter></greeter></projector>'})
+        class RootComponent {
+          static ngComponentDef = defineComponent({
+            type: RootComponent,
+            selectors: [['root']],
+            factory: () => new RootComponent(),
+            consts: 2,
+            vars: 0,
+            template: function(fs: RenderFlags, ctx: RootComponent) {
+              if (fs & RenderFlags.Create) {
+                elementStart(0, 'projector');
+                element(1, 'greeter');
+                elementEnd();
+              }
+            },
+            directives: [ProjectorComponent, GreeterComponent]
+          });
+        }
+
+        const fixture = new ComponentFixture(RootComponent);
+        expect(fixture.html)
+            .toEqual(
+                '<projector><greeter>Hallo - Bonjour</greeter> - Projected: <greeter>Hallo</greeter></projector>');
+      });
+    });
+
+    describe('with directive', () => {
+      @Directive({
+        selector: 'projector',
+        providers: [{provide: Greeter, useValue: {greet: 'Ola'}, multi: true}]
+      })
+      class SomeDirective {
+        static ngDirectiveDef = defineDirective({
+          type: SomeDirective,
+          selectors: [['projector']],
+          factory: () => new SomeDirective(),
+          features:
+              [ProvidersFeature([{provide: Greeter, useValue: {greet: 'Ola'}, multi: true}])]
+        });
+      }
+
+      it('should work when only providers in component', () => {
+        @Component({
+          template: '<greeter></greeter> - Projected: <ng-content></ng-content>',
+          providers: [{provide: Greeter, useValue: {greet: 'Hallo'}, multi: true}],
+        })
+        class ProjectorComponent {
+          static ngComponentDef = defineComponent({
+            type: ProjectorComponent,
+            selectors: [['projector']],
+            factory: () => new ProjectorComponent(),
+            consts: 3,
+            vars: 0,
+            template: function(fs: RenderFlags, ctx: ProjectorComponent) {
+              if (fs & RenderFlags.Create) {
+                projectionDef();
+                element(0, 'greeter');
+                text(1, ' - Projected: ');
+                projection(2);
+              }
+            },
+            directives: [GreeterComponent],
+            features:
+                [ProvidersFeature([{provide: Greeter, useValue: {greet: 'Hallo'}, multi: true}])]
+          });
+        }
+
+        @Component({template: '<projector><greeter></greeter></projector>'})
+        class RootComponent {
+          static ngComponentDef = defineComponent({
+            type: RootComponent,
+            selectors: [['root']],
+            factory: () => new RootComponent(),
+            consts: 2,
+            vars: 0,
+            template: function(fs: RenderFlags, ctx: RootComponent) {
+              if (fs & RenderFlags.Create) {
+                elementStart(0, 'projector');
+                element(1, 'greeter');
+                elementEnd();
+              }
+            },
+            directives: [ProjectorComponent, GreeterComponent, SomeDirective]
+          });
+        }
+
+        const fixture = new ComponentFixture(RootComponent);
+        expect(fixture.html)
+            .toEqual(
+                '<projector><greeter>Hallo - Ola</greeter> - Projected: <greeter>Hallo - Ola</greeter></projector>');
+      });
+
+      it('should work when only view providers in component', () => {
+        @Component({
+          template: '<greeter></greeter> - Projected: <ng-content></ng-content>',
+          viewProviders: [{provide: Greeter, useValue: {greet: 'Bonjour'}, multi: true}],
+        })
+        class ProjectorComponent {
+          static ngComponentDef = defineComponent({
+            type: ProjectorComponent,
+            selectors: [['projector']],
+            factory: () => new ProjectorComponent(),
+            consts: 3,
+            vars: 0,
+            template: function(fs: RenderFlags, ctx: ProjectorComponent) {
+              if (fs & RenderFlags.Create) {
+                projectionDef();
+                element(0, 'greeter');
+                text(1, ' - Projected: ');
+                projection(2);
+              }
+            },
+            directives: [GreeterComponent],
+            features: [ProvidersFeature(
+                [], [{provide: Greeter, useValue: {greet: 'Bonjour'}, multi: true}])]
+          });
+        }
+
+        @Component({template: '<projector><greeter></greeter></projector>'})
+        class RootComponent {
+          static ngComponentDef = defineComponent({
+            type: RootComponent,
+            selectors: [['root']],
+            factory: () => new RootComponent(),
+            consts: 2,
+            vars: 0,
+            template: function(fs: RenderFlags, ctx: RootComponent) {
+              if (fs & RenderFlags.Create) {
+                elementStart(0, 'projector');
+                element(1, 'greeter');
+                elementEnd();
+              }
+            },
+            directives: [ProjectorComponent, GreeterComponent, SomeDirective]
+          });
+        }
+
+        const fixture = new ComponentFixture(RootComponent);
+        expect(fixture.html)
+            .toEqual(
+                '<projector><greeter>Bonjour - Ola</greeter> - Projected: <greeter>Ola</greeter></projector>');
+      });
+
+      it('should work when both providers and view Providers in component', () => {
+        @Component({
+          template: '<greeter></greeter> - Projected: <ng-content></ng-content>',
+          providers: [{provide: Greeter, useValue: {greet: 'Hallo'}, multi: true}],
+          viewProviders: [{provide: Greeter, useValue: {greet: 'Bonjour'}, multi: true}],
+        })
+        class ProjectorComponent {
+          static ngComponentDef = defineComponent({
+            type: ProjectorComponent,
+            selectors: [['projector']],
+            factory: () => new ProjectorComponent(),
+            consts: 3,
+            vars: 0,
+            template: function(fs: RenderFlags, ctx: ProjectorComponent) {
+              if (fs & RenderFlags.Create) {
+                projectionDef();
+                element(0, 'greeter');
+                text(1, ' - Projected: ');
+                projection(2);
+              }
+            },
+            directives: [GreeterComponent],
+            features: [ProvidersFeature(
+                [{provide: Greeter, useValue: {greet: 'Hallo'}, multi: true}],
+                [{provide: Greeter, useValue: {greet: 'Bonjour'}, multi: true}])]
+          });
+        }
+
+        @Component({template: '<projector><greeter></greeter></projector>'})
+        class RootComponent {
+          static ngComponentDef = defineComponent({
+            type: RootComponent,
+            selectors: [['root']],
+            factory: () => new RootComponent(),
+            consts: 2,
+            vars: 0,
+            template: function(fs: RenderFlags, ctx: RootComponent) {
+              if (fs & RenderFlags.Create) {
+                elementStart(0, 'projector');
+                element(1, 'greeter');
+                elementEnd();
+              }
+            },
+            directives: [ProjectorComponent, GreeterComponent, SomeDirective]
+          });
+        }
+
+        const fixture = new ComponentFixture(RootComponent);
+        expect(fixture.html)
+            .toEqual(
+                '<projector><greeter>Hallo - Bonjour - Ola</greeter> - Projected: <greeter>Hallo - Ola</greeter></projector>');
+      });
+
+      it('should work when no providers in component', () => {
+        @Component({template: '<greeter></greeter> - Projected: <ng-content></ng-content>'})
+        class ProjectorComponent {
+          static ngComponentDef = defineComponent({
+            type: ProjectorComponent,
+            selectors: [['projector']],
+            factory: () => new ProjectorComponent(),
+            consts: 3,
+            vars: 0,
+            template: function(fs: RenderFlags, ctx: ProjectorComponent) {
+              if (fs & RenderFlags.Create) {
+                projectionDef();
+                element(0, 'greeter');
+                text(1, ' - Projected: ');
+                projection(2);
+              }
+            },
+            directives: [GreeterComponent]
+          });
+        }
+
+        @Component({template: '<projector><greeter></greeter></projector>'})
+        class RootComponent {
+          static ngComponentDef = defineComponent({
+            type: RootComponent,
+            selectors: [['root']],
+            factory: () => new RootComponent(),
+            consts: 2,
+            vars: 0,
+            template: function(fs: RenderFlags, ctx: RootComponent) {
+              if (fs & RenderFlags.Create) {
+                elementStart(0, 'projector');
+                element(1, 'greeter');
+                elementEnd();
+              }
+            },
+            directives: [ProjectorComponent, GreeterComponent, SomeDirective]
+          });
+        }
+
+        const fixture = new ComponentFixture(RootComponent);
+        expect(fixture.html)
+            .toEqual(
+                '<projector><greeter>Ola</greeter> - Projected: <greeter>Ola</greeter></projector>');
+      });
+    });
+  });
+
+  describe('tree-shakable injectables', () => {
+    it('should work with root', () => {
+      @Injectable({providedIn: 'root'})
+      class RootGreeter implements Greeter {
+        greet = 'Hello from root';
+
+        static ngInjectableDef =
+            defineInjectable({factory: () => new RootGreeter(), providedIn: 'root'});
+      }
+
+      @Component({template: '{{greeter.greet()}}'})
+      class ComponentWithProviders {
+        constructor(private greeter: Greeter) {}
+
+        static ngComponentDef = defineComponent({
+          type: ComponentWithProviders,
+          selectors: [['component-with-providers']],
+          factory: () => new ComponentWithProviders(directiveInject(RootGreeter as any)),
+          consts: 1,
+          vars: 1,
+          template: function(fs: RenderFlags, ctx: ComponentWithProviders) {
+            if (fs & RenderFlags.Create) {
+              text(0);
+            }
+            if (fs & RenderFlags.Update) {
+              textBinding(0, bind(ctx.greeter.greet));
+            }
+          },
+        });
+      }
+
+      const fixture = new ComponentFixture(ComponentWithProviders);
+      expect(fixture.html).toEqual('Hello from root');
+    });
+
+    it('should work with a module', () => {
+      @Injectable({providedIn: MyModule})
+      class RootGreeter implements Greeter {
+        greet = 'Hello from MyModule';
+
+        static ngInjectableDef =
+            defineInjectable({factory: () => new RootGreeter(), providedIn: MyModule});
+      }
+
+      @Component({template: '{{greeter.greet()}}'})
+      class ComponentWithProviders {
+        constructor(private greeter: Greeter) {}
+
+        static ngComponentDef = defineComponent({
+          type: ComponentWithProviders,
+          selectors: [['component-with-providers']],
+          factory: () => new ComponentWithProviders(directiveInject(RootGreeter as any)),
+          consts: 1,
+          vars: 1,
+          template: function(fs: RenderFlags, ctx: ComponentWithProviders) {
+            if (fs & RenderFlags.Create) {
+              text(0);
+            }
+            if (fs & RenderFlags.Update) {
+              textBinding(0, bind(ctx.greeter.greet));
+            }
+          },
+        });
+      }
+
+      const fixture =
+          new ComponentFixture(ComponentWithProviders, {injector: createInjector(MyModule)});
+      expect(fixture.html).toEqual('Hello from MyModule');
+    });
   });
 
 });

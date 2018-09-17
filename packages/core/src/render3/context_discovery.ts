@@ -10,8 +10,9 @@ import './ng_dev_mode';
 import {assertEqual} from './assert';
 import {LElementNode, TNode, TNodeFlags} from './interfaces/node';
 import {RElement} from './interfaces/renderer';
-import {CONTEXT, DIRECTIVES, HEADER_OFFSET, LViewData, TVIEW} from './interfaces/view';
+import {CONTEXT, HEADER_OFFSET, INJECTABLES, LViewData, TVIEW} from './interfaces/view';
 import {readElementValue} from './util';
+
 
 /**
  * This property will be monkey-patched on elements, components and directives
@@ -315,7 +316,7 @@ function findViaDirective(lViewData: LViewData, directiveInstance: {}): number {
   // in the view data. By first checking to see if the instance
   // is actually present we can narrow down to which lElementNode
   // contains the instance of the directive and then return the index
-  const directivesAcrossView = lViewData[DIRECTIVES];
+  const directivesAcrossView = lViewData[INJECTABLES];
   const directiveIndex =
       directivesAcrossView ? directivesAcrossView.indexOf(directiveInstance) : -1;
   if (directiveIndex >= 0) {
@@ -354,9 +355,9 @@ function getLNodeFromViewData(lViewData: LViewData, lElementIndex: number): LEle
  * (which is referenced by the lNodeIndex)
  */
 function discoverDirectiveIndices(lViewData: LViewData, lNodeIndex: number): number[]|null {
-  const directivesAcrossView = lViewData[DIRECTIVES];
+  const injectablesAcrossView = lViewData[INJECTABLES];
   const tNode = lViewData[TVIEW].data[lNodeIndex] as TNode;
-  if (directivesAcrossView && directivesAcrossView.length) {
+  if (injectablesAcrossView && injectablesAcrossView.length) {
     // this check for tNode is to determine if the value is a LElementNode instance
     const directiveIndexStart = getDirectiveStartIndex(tNode);
     const directiveIndexEnd = getDirectiveEndIndex(tNode, directiveIndexStart);
@@ -365,7 +366,7 @@ function discoverDirectiveIndices(lViewData: LViewData, lNodeIndex: number): num
       // special case since the instance of the component (if it exists)
       // is stored in the directives array.
       if (i > directiveIndexStart ||
-          !isComponentInstance(directivesAcrossView[directiveIndexStart])) {
+          !isComponentInstance(injectablesAcrossView[directiveIndexStart])) {
         directiveIndices.push(i);
       }
     }
@@ -376,11 +377,11 @@ function discoverDirectiveIndices(lViewData: LViewData, lNodeIndex: number): num
 
 function discoverDirectives(lViewData: LViewData, directiveIndices: number[]): number[]|null {
   const directives: any[] = [];
-  const directiveInstances = lViewData[DIRECTIVES];
-  if (directiveInstances) {
+  const injectableInstances = lViewData[INJECTABLES];
+  if (injectableInstances) {
     for (let i = 0; i < directiveIndices.length; i++) {
       const directiveIndex = directiveIndices[i];
-      const directive = directiveInstances[directiveIndex];
+      const directive = injectableInstances[directiveIndex];
       directives.push(directive);
     }
   }

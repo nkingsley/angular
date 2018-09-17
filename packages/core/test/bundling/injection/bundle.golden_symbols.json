@@ -60,6 +60,9 @@
     "name": "_THROW_IF_NOT_FOUND"
   },
   {
+    "name": "__forward_ref__"
+  },
+  {
     "name": "__read"
   },
   {
@@ -67,6 +70,9 @@
   },
   {
     "name": "_currentInjector"
+  },
+  {
+    "name": "_injectImplementation"
   },
   {
     "name": "couldBeInjectableType"
@@ -111,7 +117,13 @@
     "name": "injectArgs"
   },
   {
-    "name": "injectableDefRecord"
+    "name": "injectFromRoot"
+  },
+  {
+    "name": "injectInjectorOnly"
+  },
+  {
+    "name": "injectableDefFactory"
   },
   {
     "name": "isExistingProvider"
@@ -133,6 +145,9 @@
   },
   {
     "name": "makeRecord"
+  },
+  {
+    "name": "providerToFactory"
   },
   {
     "name": "providerToRecord"

@@ -1944,6 +1944,9 @@
     "name": "__extends$u"
   },
   {
+    "name": "__forward_ref__"
+  },
+  {
     "name": "__metadata"
   },
   {
@@ -2083,6 +2086,9 @@
   },
   {
     "name": "_global"
+  },
+  {
+    "name": "_injectImplementation"
   },
   {
     "name": "_isClosingComment"
@@ -3070,6 +3076,12 @@
   },
   {
     "name": "injectArgs"
+  },
+  {
+    "name": "injectFromRoot"
+  },
+  {
+    "name": "injectInjectorOnly"
   },
   {
     "name": "inlineInterpolate"

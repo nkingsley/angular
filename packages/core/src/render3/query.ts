@@ -22,7 +22,7 @@ import {DirectiveDefInternal, unusedValueExportToPlacateAjd as unused1} from './
 import {LInjector, unusedValueExportToPlacateAjd as unused2} from './interfaces/injector';
 import {LContainerNode, LElementNode, TContainerNode, TElementContainerNode, TElementNode, TNode, TNodeFlags, unusedValueExportToPlacateAjd as unused3} from './interfaces/node';
 import {LQueries, QueryReadType, unusedValueExportToPlacateAjd as unused4} from './interfaces/query';
-import {DIRECTIVES, LViewData, TVIEW} from './interfaces/view';
+import {INJECTABLES, LViewData, TVIEW} from './interfaces/view';
 import {flatten, getLNode, isContentQueryHost} from './util';
 
 const unusedValueToPlacateAjd = unused1 + unused2 + unused3 + unused4;
@@ -248,7 +248,7 @@ function getIdxOfMatchingSelector(tNode: TNode, selector: string): number|null {
  */
 function getIdxOfMatchingDirective(tNode: TNode, currentView: LViewData, type: Type<any>): number|
     null {
-  const defs = currentView[TVIEW].directives;
+  const defs = currentView[TVIEW].injectables;
   if (defs) {
     const flags = tNode.flags;
     const count = flags & TNodeFlags.DirectiveCountMask;
@@ -272,7 +272,7 @@ function readFromNodeInjector(
   } else {
     const matchingIdx = getIdxOfMatchingDirective(tNode, currentView, read as Type<any>);
     if (matchingIdx !== null) {
-      return currentView[DIRECTIVES] ![matchingIdx];
+      return currentView[INJECTABLES] ![matchingIdx];
     }
   }
   return null;
