@@ -181,9 +181,15 @@ export function diPublic(def: DirectiveDefInternal<any>): void {
 /**
  * Resolves the providers which are defined in the DirectiveDef.
  *
- * When inserting the tokens and the records in their respective arrays, we can assume that
+ * When inserting the tokens and the factories in their respective arrays, we can assume that
  * this method is called first for the component (if any), and then for other directives on the same node.
- * So viewProviders are always resolved first, before all other providers.
+ * As a consequence,the providers are always processed in that order:
+ * 1) The providers of the component
+ * 2) The view providers of the component
+ * 3) The providers of the other directives
+ * This matches the structure of the injectables arrays of a view (for each node).
+ * So the tokens and the factories can be pushed at the end of the arrays, except
+ * in one case for multi providers.
  *
  * @param def the directive definition
  * @return the updated list of injectables
@@ -201,17 +207,17 @@ export function providersResolver<T>(
   const tInjectables: InjectableDefList = tView.injectables || (tView.injectables = []);
   const isComponent = isComponentDef(def);
 
+  // The list of providers is processed first, and the flags are updated
   const providerCount = resolveProvider(providers, tInjectables, lInjectables, isComponent, false);
-  // Shift starting index of directives
   previousOrParentTNode.flags += TNodeFlags.DirectiveIndexShifter * providerCount;
   if (isComponent) {
     previousOrParentTNode.providerIndexes +=
         TNodeProviderIndexes.CptProvidersCountShifter * providerCount;
   }
 
+  // Then, the list of view providers is processed, and the flags are updated
   const viewProviderCount =
       resolveProvider(viewProviders, tInjectables, lInjectables, isComponent, true);
-  // Shift starting index of directives
   previousOrParentTNode.flags += TNodeFlags.DirectiveIndexShifter * viewProviderCount;
   previousOrParentTNode.providerIndexes +=
       TNodeProviderIndexes.CptViewProvidersCountShifter * viewProviderCount;
@@ -242,82 +248,91 @@ function resolveProvider(
     return shift;
   }
   let token: any = isTypeProvider(provider) ? provider : resolveForwardRef(provider.provide);
-  const factory = providerToFactory(provider);
-  if (!isTypeProvider(provider) && provider.multi) {
+  let factory: Factory|(() => any) = providerToFactory(provider);
+  if (isTypeProvider(provider) || !provider.multi) {
+    // Single provider case: the factory is created and pushed immediately
+    factory = new Factory(factory);
+  } else {
+    // Multi provider case:
+    // We create a special multi factory which is going to aggregate all the values.
+    // Since the output of such a factory depends on content or view injection,
+    // we create two of them in fact, which are linked together.
+    //
+    // The first one (for providers) is always in the first block of the injectables array,
+    // and the second one (for view providers) is always in the second block.
+    // This is important because view providers have higher priority. When a multi token
+    // is being looked up, the view providers should be found first.
+    // Note that it is not possible to have a special multi factory in the third block.
+    //
+    // The algorithm to process multi providers is as follows:
+    // 1) The multi provider comes from the providers of the component:
+    //   a) If the special providers factory doesn't exist, it is created and pushed.
+    //   b) Else, the multi provider is added to the existing one.
+    // 2) The multi provider comes from the view providers of the component:
+    //   a) If the special view providers factory doesn't exist, it is created and pushed.
+    //   b) Else, the multi provider is added to the existing one.
+    // 3) The multi providers comes from the providers of the other directives
+    //   a) If the special providers factory doesn't exist, it is created and
+    //     i) If a special view providers exists, it is inserted in the first block and linked
+    //     ii) Else, it is pushed in the third block
+    //   b) Else, the multi provider is added to the existing one.
     const previousOrParentTNode = getPreviousOrParentTNode();
     const beginIndex =
         previousOrParentTNode.providerIndexes & TNodeProviderIndexes.ProvidersStartIndexMask;
     const endIndex = beginIndex +
         (previousOrParentTNode.providerIndexes >> TNodeProviderIndexes.CptProvidersCountShift);
-    let existingProvidersFactoryIndex = indexOf(token, tInjectables, beginIndex, endIndex);
-    let existingViewProvidersFactoryIndex =
+    const existingProvidersFactoryIndex = indexOf(token, tInjectables, beginIndex, endIndex);
+    const existingViewProvidersFactoryIndex =
         indexOf(token, tInjectables, endIndex, tInjectables.length);
-    if (isComponent && !isViewProvider) {
-      if (existingProvidersFactoryIndex == -1) {
-        const mFactory =
-            multiFactory(multiProvidersFactoryResolver, lInjectables.length, null, factory);
-        tInjectables.push(token);
-        lInjectables.push(mFactory);
+    const doesProvidersFactoryExist = existingProvidersFactoryIndex >= 0;
+    const doesViewProvidersFactoryExist = existingViewProvidersFactoryIndex >= 0;
+    if (isComponent && (!isViewProvider && !doesProvidersFactoryExist ||
+                        isViewProvider && !doesViewProvidersFactoryExist) ||
+        !isComponent && !doesProvidersFactoryExist) {
+      // Cases 1.a, 2.a, 3.a.i and 3.a.ii
+      factory = multiFactory(
+          isViewProvider ? multiViewProvidersFactoryResolver : multiProvidersFactoryResolver,
+          !isComponent && doesViewProvidersFactoryExist ? endIndex : lInjectables.length,
+          !doesProvidersFactoryExist ? null : lInjectables[existingProvidersFactoryIndex], factory);
+      if (!isComponent && doesViewProvidersFactoryExist) {
+        // Special insertion logic for case 3.a.i
+        lInjectables ![existingViewProvidersFactoryIndex].providerFactory = factory;
+        tInjectables.splice(endIndex, 0, token);
+        lInjectables.splice(endIndex, 0, factory);
+        previousOrParentTNode.providerIndexes += TNodeProviderIndexes.CptProvidersCountShifter;
         diPublicInInjector(getOrCreateNodeInjector(), token);
         return 1;
-      } else {
-        multiFactoryAdd(lInjectables ![existingProvidersFactoryIndex], factory);
-        return 0;
-      }
-    } else if (isComponent && isViewProvider) {
-      if (existingViewProvidersFactoryIndex == -1) {
-        const mFactory = multiFactory(
-            multiViewProvidersFactoryResolver, lInjectables.length,
-            existingProvidersFactoryIndex == -1 ? null :
-                                                  lInjectables[existingProvidersFactoryIndex],
-            factory);
-        tInjectables.push(token);
-        lInjectables.push(mFactory);
-        diPublicInInjector(getOrCreateNodeInjector(), token);
-        return 1;
-      } else {
-        multiFactoryAdd(lInjectables ![existingViewProvidersFactoryIndex], factory);
-        return 0;
       }
     } else {
-      if (existingProvidersFactoryIndex == -1) {
-        if (existingViewProvidersFactoryIndex >= 0) {
-          const mFactory = multiFactory(multiProvidersFactoryResolver, endIndex, null, factory);
-          lInjectables ![existingViewProvidersFactoryIndex].providerFactory = mFactory;
-          tInjectables.splice(endIndex, 0, token);
-          lInjectables.splice(endIndex, 0, mFactory);
-          previousOrParentTNode.providerIndexes += TNodeProviderIndexes.CptProvidersCountShifter;
-        } else {
-          const mFactory =
-              multiFactory(multiProvidersFactoryResolver, lInjectables.length, null, factory);
-          tInjectables.push(token);
-          lInjectables.push(mFactory);
-        }
-        diPublicInInjector(getOrCreateNodeInjector(), token);
-        return 1;
-      } else {
-        multiFactoryAdd(lInjectables ![existingProvidersFactoryIndex], factory);
-        return 0;
-      }
+      // Cases 1.b, 2.b and 3.b
+      multiFactoryAdd(
+          lInjectables ![isViewProvider ? existingViewProvidersFactoryIndex : existingProvidersFactoryIndex],
+          factory);
+      return 0;
     }
-  } else {
-    tInjectables.push(token);
-    lInjectables.push(new Factory(factory));
-    diPublicInInjector(getOrCreateNodeInjector(), token);
   }
+  // Insertion logic for single providers and multi providers (all cases but 3.a.i)
+  tInjectables.push(token);
+  lInjectables.push(factory);
+  diPublicInInjector(getOrCreateNodeInjector(), token);
   return 1;
 }
 
+/**
+ * Add a factory in a nulti factory.
+ */
 function multiFactoryAdd(multiFactory: Factory, factory: () => any): void {
   multiFactory.multi !.push(factory);
 }
 
-function indexOf(token: any, tInjectables: InjectableDefList, begin: number, end: number) {
-  let index = -1;
-  for (let i = begin; i < end && index == -1; i++) {
-    if (tInjectables[i] === token) index = i;
+/**
+ * Returns the index of item in the array, but only in the begin to end range.
+ */
+function indexOf(item: any, arr: any[], begin: number, end: number) {
+  for (let i = begin; i < end; i++) {
+    if (arr[i] === item) return i;
   }
-  return index;
+  return -1;
 }
 
 /**
@@ -347,6 +362,9 @@ function multiViewProvidersFactoryResolver(this: Factory, data: any[]): any[] {
   return result;
 }
 
+/**
+ * Maps an array of factories into an array of values.
+ */
 function multiResolve(factories: Array<() => any>, result: any[]): any[] {
   for (let i = 0; i < factories.length; i++) {
     const factory = factories[i] !as() => null;
@@ -371,6 +389,9 @@ function getInjectable(lData: any[], index: number): any {
   return value;
 }
 
+/**
+ * Creates a muli factory.
+ */
 function multiFactory(
     factoryFn: (this: Factory, data: any[]) => any, index: number, providerFactory: Factory | null,
     f: () => any): Factory {

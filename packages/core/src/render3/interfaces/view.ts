@@ -358,16 +358,16 @@ export interface TView {
    * are stored in LView.directives[]. This simplifies lookup in DI.
    *
    * For each node of the view, this array has a section whose structure is:
-   * [--- multi ---|--- providers of ---|- viewProviders -|-- providers ---|- directives -]
-   *  - providers -|- other directives -|-- of component -|- of component -|--------------]
-   * A                                                                     B
-   *                                    <-------- C ------><------ D ------><---- E ------>
+   * [---- providers ----|-- viewProviders --|--- providers of -----|-- directives --]
+   *  -- of component ---|--- of component --|-- other directives --|----------------]
+   * A                                                              B
+   * <--------- C ------><-------- D -------->                      <------- E ------>
    *
    * At TNode level, some static data are stored to access the different parts:
    * - A: a pointer to the beginning of the structure
    * - B: a pointer to the beginning of the directives section
-   * - C: the number of view providers on the component
-   * - D: the number of providers on the component
+   * - C: the number of providers on the component
+   * - D: the number of view providers on the component
    * - E: the number of directives
    *
    * At creation time, the good thing is that we can simply always push in the 2 arrays,
@@ -385,12 +385,10 @@ export interface TView {
    * from B to B+E.
    *
    * Note on multi providers: For such a token,
-   * we create only one special factory per token which returns the array of values.
-   * As the values can be defined in providers and view providers,
-   * the special factories are added at the beginning of the section.
-   * As a side-effect, as in view engine, the array of value returned is always the same.
-   * It doesn't depend on where the values were defined, nor on the location of the node
-   * where the injection happens.
+   * we create only one special factory per token, which returns the array of values.
+   * As the values can be defined in providers or view providers, at most 2 special factories
+   * can be created: one in the first block (providers of component) and one in the second block
+   * (viewProviders of component).
    */
   injectables: InjectableDefList|null;
 
