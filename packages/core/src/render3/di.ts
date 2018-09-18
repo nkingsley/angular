@@ -338,7 +338,7 @@ function indexOf(item: any, arr: any[], begin: number, end: number) {
 /**
  * Use this with `multi` `providers`.
  */
-function multiProvidersFactoryResolver(this: Factory, data: any[]): any[] {
+function multiProvidersFactoryResolver(this: Factory, tData: any[], data: any[]): any[] {
   return multiResolve(this.multi !, []);
 }
 
@@ -347,10 +347,10 @@ function multiProvidersFactoryResolver(this: Factory, data: any[]): any[] {
  *
  * This factory knows how to concatenate itself with the existing `multi` `providers`.
  */
-function multiViewProvidersFactoryResolver(this: Factory, data: any[]): any[] {
+function multiViewProvidersFactoryResolver(this: Factory, tData: any[], lData: any[]): any[] {
   const factories = this.multi !;
   const componentCount = this.componentProviders !;
-  const multiProviders = getInjectable(data, this.providerFactory !.index !);
+  const multiProviders = getInjectable(tData, lData, this.providerFactory !.index !);
   // Copy the section of the array which contains `multi` `providers` from the component
   let result: any[] = multiProviders.slice(0, componentCount);
   // Insert the `viewProvider` instances.
@@ -381,10 +381,19 @@ function multiResolve(factories: Array<() => any>, result: any[]): any[] {
  * cached `injectable`. Otherwise if it detects that the value is still a factory it
  * instantiate the `injectable` and caches the value.
  */
-function getInjectable(lData: any[], index: number): any {
+function getInjectable(tData: any[], lData: any[], index: number): any {
   let value = lData[index];
   if (isFactory(value)) {
-    value = lData[index] = value.factory(lData);
+    if (value.resolving) {
+      throw new Error(`Circular dep for ${stringify(tData[index])}`);
+    }
+    value.resolving = true;
+    try {
+      value = lData[index] = value.factory(tData, lData);
+    } catch (e) {
+      value.resolving = false;
+      throw e;
+    }
   }
   return value;
 }
@@ -393,8 +402,8 @@ function getInjectable(lData: any[], index: number): any {
  * Creates a muli factory.
  */
 function multiFactory(
-    factoryFn: (this: Factory, data: any[]) => any, index: number, providerFactory: Factory | null,
-    f: () => any): Factory {
+    factoryFn: (this: Factory, tData: any[], lData: any[]) => any, index: number,
+    providerFactory: Factory | null, f: () => any): Factory {
   const factory = new Factory(factoryFn);
   factory.multi = [];
   factory.index = index;
@@ -499,10 +508,15 @@ class Factory {
       public factory:
           (this: Factory,
            /**
+            * array where injectables tokens are stored. This is used in
+            * case of an error reporting to produce friendlier errors.
+            */
+           tData: any[],
+           /**
             * array where existing instances of injectables are stored. This is used in case
             * of multi shadow is needed. See `multi` field documentation.
             */
-           data: any[]) => any) {}
+           lData: any[]) => any) {}
 }
 const FactoryPrototype = Factory.prototype;
 function isFactory(obj: any): obj is Factory {
@@ -733,7 +747,7 @@ export function getOrCreateInjectable<T>(
       const node = getLNode(tNode, injectorView);
       const nodeFlags = tNode.flags;
       const nodeProviderIndexes = tNode.providerIndexes;
-      const defs = injectorView[TVIEW].injectables !;
+      const tInjectables = injectorView[TVIEW].injectables !;
       // First, we step through providers
       let canAccessViewProviders = false;
       // We need to determine if view providers can be accessed by the starting node (i.e.
@@ -757,35 +771,19 @@ export function getOrCreateInjectable<T>(
       const cptViewProvidersCount =
           (nodeProviderIndexes & TNodeProviderIndexes.CptViewProvidersCountMask) >>
           TNodeProviderIndexes.CptViewProvidersCountShift;
-      let multiResults: T[]|null = null;
-      const injectables = injectorView[INJECTABLES] !;
+      const lInjectables = injectorView[INJECTABLES] !;
       for (let i = startDirectives - 1; i >= startInjectables; i--) {
         const isViewProvider = i >= (startInjectables + cptProvidersCount) &&
             i < (startInjectables + cptProvidersCount + cptViewProvidersCount);
-        const providerToken = defs[i] as InjectionToken<any>| Type<any>;
+        const providerToken = tInjectables[i] as InjectionToken<any>| Type<any>;
         if (token === providerToken &&
             (!isViewProvider || isViewProvider && canAccessViewProviders)) {
-          let value = injectables[i];
-          if (isFactory(value)) {
-            if (value.resolving) {
-              throw new Error(`Circular dep for ${stringify(token)}`);
-            }
-            value.resolving = true;
-            try {
-              value = injectables[i] = value.factory(injectables);
-            } catch (e) {
-              value.resolving = false;
-              throw e;
-            }
-          }
+          const value = getInjectable(tInjectables, lInjectables, i);
           closestComponentAncestor = null;
           return value;
         }
       }
       closestComponentAncestor = null;
-      // The list must be reversed here as the providers were inserted in a reverted order in the
-      // injectables arrays.
-      if (multiResults) return multiResults !.reverse() as any as T;
 
       // Then, we step through directives
       const count = nodeFlags & TNodeFlags.DirectiveCountMask;
@@ -793,7 +791,7 @@ export function getOrCreateInjectable<T>(
         for (let i = startDirectives; i < startDirectives + count; i++) {
           // Get the definition for the directive at this index and, if it is injectable (diPublic),
           // and matches the given token, return the directive instance.
-          const directiveDef = defs[i] as DirectiveDefInternal<any>;
+          const directiveDef = tInjectables[i] as DirectiveDefInternal<any>;
           if (directiveDef.type === token && directiveDef.diPublic) {
             return injectorView[INJECTABLES] ![i];
           }

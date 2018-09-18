@@ -1638,6 +1638,9 @@
     "name": "getInitialValue"
   },
   {
+    "name": "getInjectable"
+  },
+  {
     "name": "getInjectableDef"
   },
   {
