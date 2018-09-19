@@ -26,6 +26,7 @@ import {EmbeddedViewRef as viewEngine_EmbeddedViewRef, ViewRef as viewEngine_Vie
 import {Renderer2} from '../render';
 import {Type} from '../type';
 import {stringify} from '../util';
+import {isComponentView} from '../view/util';
 
 import {assertDefined, assertGreaterThan, assertLessThan} from './assert';
 import {ComponentFactoryResolver} from './component_ref';
@@ -687,6 +688,49 @@ function getOrCreateRenderer2(di: LInjector): Renderer2 {
     return renderer as Renderer2;
   } else {
     throw new Error('Cannot inject Renderer2 when the application uses Renderer3!');
+  }
+}
+
+/**
+ * Determines if the `tView` is a root view of a component (vs an embedded-view).
+ *
+ * @param tView `TView` to examine.
+ */
+function isTViewAComponentView(tView: TView): boolean {
+  // TODO(misko): Refactor `TView` for performance so that it has `flags` so that we can directly
+  // determine if it is a ComponentView (vs EmbeddedView);
+  return tView.node !.type == TNodeType.Element;
+}
+
+/**
+ * Determines if a given location in a `TNode` tree should include the `viewProviders`.
+ *
+ * When an injector is searching for a type in a `TNode` tree, it needs to determine if a given
+ * `TNode` should have `viewProviders` visible. The basic rules which make the `viewProviders`
+ * visible are:
+ * - If `instantiatingComponent` component is true. This is a special case
+ *
+ * @param currentTNode Current `TNode` where we are looking for the injectable.
+ * @param previousTNode Previous `TNode` where we looked for injectable (or `null` if it is at the
+ * beginning of search.)
+ */
+function areViewProvidersVisible(
+    currentTNode: TView, currentTView: TView, previousTView: TView | null): boolean {
+  if (instantiatingComponent) {
+    // If we are instantiating component than the component can see its `viewProviders` and the
+    // `viewProviders` should be included. However this is only the case for the initial
+    return true;
+  }
+  // Check to see if `TView` transition has occurred.
+  if (previousTView !== null && currentTView !== previousTView &&
+      isTViewAComponentView(previousTView)) {
+    // `TView` transition has occurred therefor if we have just crossed from a component view into
+    // parent than the `viewProviders` should be included.
+    return true;
+  } else {
+    // `TView` transition has not occurred therefor we know that `viewProviders` should not be
+    // visible.
+    return false;
   }
 }
 
