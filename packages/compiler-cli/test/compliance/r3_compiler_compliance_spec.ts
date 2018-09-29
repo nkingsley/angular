@@ -1159,7 +1159,7 @@ describe('compiler compliance', () => {
 
             @NgModule({declarations: [SomeDirective, ViewQueryComponent]})
             export class MyModule {}
-          `
+            `
           }
         };
 
@@ -1216,7 +1216,7 @@ describe('compiler compliance', () => {
 
             @NgModule({declarations: [ViewQueryComponent]})
             export class MyModule {}
-          `
+            `
           }
         };
 
