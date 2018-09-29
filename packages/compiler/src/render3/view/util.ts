@@ -107,7 +107,7 @@ export function getQueryPredicate(
     let predicate: o.Expression[] = [];
     query.predicate.forEach((selector: string): void => {
       // Each item in predicates array may contain strings with comma-separated refs
-      // (for ex. 'ref, ref1, ..., refN'), thus we exract individual refs and store them
+      // (for ex. 'ref, ref1, ..., refN'), thus we extract individual refs and store them
       // as separate array entities
       const selectors = selector.split(',').map(token => o.literal(token.trim()));
       predicate.push(...selectors);

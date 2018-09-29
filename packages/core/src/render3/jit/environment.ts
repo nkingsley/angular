@@ -10,6 +10,7 @@ import {defineInjectable, defineInjector,} from '../../di/defs';
 import {inject} from '../../di/injector';
 import * as r3 from '../index';
 import * as sanitization from '../../sanitization/sanitization';
+import {QueryReadType} from '../interfaces/query';
 
 
 /**
@@ -17,7 +18,7 @@ import * as sanitization from '../../sanitization/sanitization';
  *
  * This should be kept up to date with the public exports of @angular/core.
  */
-export const angularCoreEnv: {[name: string]: Function} = {
+export const angularCoreEnv: {[name: string]: Function | QueryReadType<any>} = {
   'ɵdefineBase': r3.defineBase,
   'ɵdefineComponent': r3.defineComponent,
   'ɵdefineDirective': r3.defineDirective,
@@ -99,7 +100,7 @@ export const angularCoreEnv: {[name: string]: Function} = {
   'ɵtextBinding': r3.textBinding,
   'ɵembeddedViewStart': r3.embeddedViewStart,
   'ɵembeddedViewEnd': r3.embeddedViewEnd,
-  'ɵqueryReadFromNode': r3.QUERY_READ_FROM_NODE as any,
+  'ɵqueryReadFromNode': r3.QUERY_READ_FROM_NODE,
 
   'ɵsanitizeHtml': sanitization.sanitizeHtml,
   'ɵsanitizeStyle': sanitization.sanitizeStyle,
