@@ -429,6 +429,8 @@ function createQueryDefinition(
 
   if (query.read) {
     parameters.push(query.read);
+  } else if (Array.isArray(query.predicate) && query.predicate.length > 0) {
+    parameters.push(o.importExpr(R3.queryReadFromNode));
   }
 
   return o.importExpr(R3.query).callFn(parameters);

@@ -11,7 +11,6 @@ import {inject} from '../../di/injector';
 import * as r3 from '../index';
 import * as sanitization from '../../sanitization/sanitization';
 
-
 /**
  * A mapping of the @angular/core API surface used in generated expressions to the actual symbols.
  *
@@ -99,6 +98,7 @@ export const angularCoreEnv: {[name: string]: Function} = {
   'ɵtextBinding': r3.textBinding,
   'ɵembeddedViewStart': r3.embeddedViewStart,
   'ɵembeddedViewEnd': r3.embeddedViewEnd,
+  'ɵqueryReadFromNode': r3.QUERY_READ_FROM_NODE as any,
 
   'ɵsanitizeHtml': sanitization.sanitizeHtml,
   'ɵsanitizeStyle': sanitization.sanitizeStyle,

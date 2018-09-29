@@ -195,4 +195,7 @@ export class Identifiers {
       o.ExternalReference = {name: 'ɵsanitizeResourceUrl', moduleName: CORE};
   static sanitizeScript: o.ExternalReference = {name: 'ɵsanitizeScript', moduleName: CORE};
   static sanitizeUrl: o.ExternalReference = {name: 'ɵsanitizeUrl', moduleName: CORE};
+
+  // query read functions
+  static queryReadFromNode: o.ExternalReference = {name: 'ɵqueryReadFromNode', moduleName: CORE};
 }
