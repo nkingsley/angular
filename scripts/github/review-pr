@@ -35,7 +35,8 @@ async function main(args) {
     return 1;
   }
 
-  let prShaCount = (await util.githubPrInfo(prNumber)).commits;
+  const prInfo = await util.githubPrInfo(prNumber);
+  const prShaCount = prInfo.commits;
 
   shell.exec(`git checkout master`);
   if (util.execNoFatal(`git rev-parse --verify --quiet pr/${prNumber}`).code == 0) {
@@ -43,7 +44,10 @@ async function main(args) {
   }
 
   shell.echo(`Fetching pull request #${prNumber} with ${prNumber} SHA(s) into branch range: pr/${prNumber}_base..pr/${prNumber}_top`);
-  shell.exec(`git fetch -f git@github.com:angular/angular.git pull/${prNumber}/head:pr/${prNumber}_top`);
+  util.execNoFatal(`git remote add ${prInfo.repository.user} ${prInfo.repository.gitUrl}`);
+  util.execNoFatal(`git branch -D pr/${prNumber}_top`);
+  shell.exec(`git fetch ${prInfo.repository.user} ${prInfo.branch}`);
+  shell.exec(`git checkout -f ${prInfo.repository.user}/${prInfo.branch} -b pr/${prNumber}_top`);
 
   shell.exec(`git branch -f pr/${prNumber}_bottom pr/${prNumber}_top~${prShaCount - 1}`);
   shell.exec(`git branch -f pr/${prNumber}_base pr/${prNumber}_top~${prShaCount}`);
@@ -59,6 +63,7 @@ async function main(args) {
 
   // Reset the HEAD so that we can see changed files for review
   shell.exec(`git checkout --force -b pr/${prNumber} pr/${prNumber}_top`);
+  shell.exec(`git branch -u ${prInfo.repository.user}/${prInfo.branch}`);
   shell.exec(`git reset pr/${prNumber}_base`);
   shell.exec(`git status`);
 
