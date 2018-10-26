@@ -26,7 +26,7 @@ import {TElementNode, TNode, TNodeType, TViewNode} from './interfaces/node';
 import {RElement, RendererFactory3, domRendererFactory3} from './interfaces/renderer';
 import {FLAGS, HEADER_OFFSET, INJECTOR, LViewData, LViewFlags, RootContext, TVIEW} from './interfaces/view';
 import {enterView} from './state';
-import {getNativeScheduler, getTNode} from './util';
+import {defaultScheduler, getTNode} from './util';
 import {createElementRef} from './view_engine_compatibility';
 import {RootViewRef, ViewRef} from './view_ref';
 
@@ -60,8 +60,10 @@ export const ROOT_CONTEXT = new InjectionToken<RootContext>(
  * A change detection scheduler token for {@link RootContext}. This token is the default value used
  * for the default `RootContext` found in the {@link ROOT_CONTEXT} token.
  */
-export const SCHEDULER = new InjectionToken<((fn: () => void) => void)>(
-    'SCHEDULER_TOKEN', {providedIn: 'root', factory: getNativeScheduler});
+export const SCHEDULER = new InjectionToken<((fn: () => void) => void)>('SCHEDULER_TOKEN', {
+  providedIn: 'root',
+  factory: () => defaultScheduler,
+});
 
 /**
  * A function used to wrap the `RendererFactory2`.
@@ -113,9 +115,8 @@ export class ComponentFactory<T> extends viewEngine_ComponentFactory<T> {
 
     const rootFlags = this.componentDef.onPush ? LViewFlags.Dirty | LViewFlags.IsRoot :
                                                  LViewFlags.CheckAlways | LViewFlags.IsRoot;
-    const rootContext: RootContext = ngModule && !isInternalRootView ?
-        ngModule.injector.get(ROOT_CONTEXT) :
-        createRootContext(getNativeScheduler());
+    const rootContext: RootContext =
+        ngModule && !isInternalRootView ? ngModule.injector.get(ROOT_CONTEXT) : createRootContext();
 
     const renderer = rendererFactory.createRenderer(hostRNode, this.componentDef);
     // Create the root view. Uses empty TView and ContentTemplate.
@@ -169,8 +170,7 @@ export class ComponentFactory<T> extends viewEngine_ComponentFactory<T> {
       // executed here?
       // Angular 5 reference: https://stackblitz.com/edit/lifecycle-hooks-vcref
       component = createRootComponent(
-          hostRNode, componentView, this.componentDef, rootView, rootContext,
-          [LifecycleHooksFeature]);
+          componentView, this.componentDef, rootView, rootContext, [LifecycleHooksFeature]);
 
       // Execute the template in creation mode only, and then turn off the CreationMode flag
       renderEmbeddedTemplate(componentView, componentView[TVIEW], component, RenderFlags.Create);

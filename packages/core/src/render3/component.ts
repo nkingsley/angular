@@ -21,11 +21,11 @@ import {CLEAN_PROMISE, createLViewData, createNodeAtIndex, createTView, detectCh
 import {ComponentDef, ComponentType} from './interfaces/definition';
 import {TElementNode, TNodeFlags, TNodeType} from './interfaces/node';
 import {PlayerHandler} from './interfaces/player';
-import {RElement, RNode, Renderer3, RendererFactory3, domRendererFactory3} from './interfaces/renderer';
+import {RElement, Renderer3, RendererFactory3, domRendererFactory3} from './interfaces/renderer';
 import {CONTEXT, HEADER_OFFSET, HOST, HOST_NODE, INJECTOR, LViewData, LViewFlags, RootContext, RootContextFlags, TVIEW} from './interfaces/view';
 import {publishDefaultGlobalUtils} from './publish_global_util';
 import {enterView, leaveView, resetComponentState} from './state';
-import {getNativeScheduler, getRootView, readElementValue, readPatchedLViewData, stringify} from './util';
+import {defaultScheduler, getRootView, readElementValue, readPatchedLViewData, stringify} from './util';
 
 
 // Root component will always have an element index of 0 and an injector size of 1
@@ -120,8 +120,7 @@ export function renderComponent<T>(
   const hostRNode = locateHostElement(rendererFactory, opts.host || componentTag);
   const rootFlags = componentDef.onPush ? LViewFlags.Dirty | LViewFlags.IsRoot :
                                           LViewFlags.CheckAlways | LViewFlags.IsRoot;
-  const rootContext =
-      createRootContext(opts.scheduler || getNativeScheduler(), opts.playerHandler || null);
+  const rootContext = createRootContext(opts.scheduler, opts.playerHandler);
 
   const renderer = rendererFactory.createRenderer(hostRNode, componentDef);
   const rootView: LViewData = createLViewData(
@@ -135,7 +134,7 @@ export function renderComponent<T>(
     const componentView =
         createRootComponentView(hostRNode, componentDef, rootView, renderer, sanitizer);
     component = createRootComponent(
-        hostRNode, componentView, componentDef, rootView, rootContext, opts.hostFeatures || null);
+        componentView, componentDef, rootView, rootContext, opts.hostFeatures || null);
 
     executeInitAndContentHooks(rootView);
     detectChangesInternal(componentView, component);
@@ -188,8 +187,8 @@ export function createRootComponentView(
  * renderComponent() and ViewContainerRef.createComponent().
  */
 export function createRootComponent<T>(
-    hostRNode: RNode | null, componentView: LViewData, componentDef: ComponentDef<T>,
-    rootView: LViewData, rootContext: RootContext, hostFeatures: HostFeature[] | null): any {
+    componentView: LViewData, componentDef: ComponentDef<T>, rootView: LViewData,
+    rootContext: RootContext, hostFeatures: HostFeature[] | null): any {
   const tView = rootView[TVIEW];
   // Create directive instance with factory() and store at next index in viewData
   const component = instantiateRootComponent(tView, rootView, componentDef);
@@ -206,10 +205,10 @@ export function createRootComponent<T>(
 
 
 export function createRootContext(
-    scheduler: (workFn: () => void) => void, playerHandler?: PlayerHandler|null): RootContext {
+    scheduler?: (workFn: () => void) => void, playerHandler?: PlayerHandler|null): RootContext {
   return {
     components: [],
-    scheduler: scheduler,
+    scheduler: scheduler || defaultScheduler,
     clean: CLEAN_PROMISE,
     playerHandler: playerHandler || null,
     flags: RootContextFlags.Empty
