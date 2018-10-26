@@ -25,7 +25,7 @@ import {RElement, RNode, Renderer3, RendererFactory3, domRendererFactory3} from 
 import {CONTEXT, HEADER_OFFSET, HOST, HOST_NODE, INJECTOR, LViewData, LViewFlags, RootContext, RootContextFlags, TVIEW} from './interfaces/view';
 import {publishDefaultGlobalUtils} from './publish_global_util';
 import {enterView, leaveView, resetComponentState} from './state';
-import {getRootView, readElementValue, readPatchedLViewData, stringify} from './util';
+import {getNativeScheduler, getRootView, readElementValue, readPatchedLViewData, stringify} from './util';
 
 
 // Root component will always have an element index of 0 and an injector size of 1
@@ -120,8 +120,8 @@ export function renderComponent<T>(
   const hostRNode = locateHostElement(rendererFactory, opts.host || componentTag);
   const rootFlags = componentDef.onPush ? LViewFlags.Dirty | LViewFlags.IsRoot :
                                           LViewFlags.CheckAlways | LViewFlags.IsRoot;
-  const rootContext = createRootContext(
-      opts.scheduler || requestAnimationFrame.bind(window), opts.playerHandler || null);
+  const rootContext =
+      createRootContext(opts.scheduler || getNativeScheduler(), opts.playerHandler || null);
 
   const renderer = rendererFactory.createRenderer(hostRNode, componentDef);
   const rootView: LViewData = createLViewData(

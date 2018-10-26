@@ -696,6 +696,9 @@
     "name": "getNativeByTNode"
   },
   {
+    "name": "getNativeScheduler"
+  },
+  {
     "name": "getNodeInjectable"
   },
   {

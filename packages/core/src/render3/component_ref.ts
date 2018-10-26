@@ -26,7 +26,7 @@ import {TElementNode, TNode, TNodeType, TViewNode} from './interfaces/node';
 import {RElement, RendererFactory3, domRendererFactory3} from './interfaces/renderer';
 import {FLAGS, HEADER_OFFSET, INJECTOR, LViewData, LViewFlags, RootContext, TVIEW} from './interfaces/view';
 import {enterView} from './state';
-import {getTNode} from './util';
+import {getNativeScheduler, getTNode} from './util';
 import {createElementRef} from './view_engine_compatibility';
 import {RootViewRef, ViewRef} from './view_ref';
 
@@ -60,13 +60,8 @@ export const ROOT_CONTEXT = new InjectionToken<RootContext>(
  * A change detection scheduler token for {@link RootContext}. This token is the default value used
  * for the default `RootContext` found in the {@link ROOT_CONTEXT} token.
  */
-export const SCHEDULER = new InjectionToken<((fn: () => void) => void)>('SCHEDULER_TOKEN', {
-  providedIn: 'root',
-  factory: () => {
-    const useRaf = typeof requestAnimationFrame !== 'undefined' && typeof window !== 'undefined';
-    return useRaf ? requestAnimationFrame.bind(window) : setTimeout;
-  },
-});
+export const SCHEDULER = new InjectionToken<((fn: () => void) => void)>(
+    'SCHEDULER_TOKEN', {providedIn: 'root', factory: getNativeScheduler});
 
 /**
  * A function used to wrap the `RendererFactory2`.
@@ -120,7 +115,7 @@ export class ComponentFactory<T> extends viewEngine_ComponentFactory<T> {
                                                  LViewFlags.CheckAlways | LViewFlags.IsRoot;
     const rootContext: RootContext = ngModule && !isInternalRootView ?
         ngModule.injector.get(ROOT_CONTEXT) :
-        createRootContext(requestAnimationFrame.bind(window));
+        createRootContext(getNativeScheduler());
 
     const renderer = rendererFactory.createRenderer(hostRNode, this.componentDef);
     // Create the root view. Uses empty TView and ContentTemplate.

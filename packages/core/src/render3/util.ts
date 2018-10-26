@@ -237,3 +237,13 @@ export function getParentInjectorTNode(
   }
   return parentTNode;
 }
+
+let _nativeScheduler: any;
+// Needed for environments where requestAnimationFrame is not available
+export function getNativeScheduler() {
+  if (_nativeScheduler == null) {
+    const useRaf = typeof requestAnimationFrame !== 'undefined' && typeof window !== 'undefined';
+    _nativeScheduler = useRaf ? requestAnimationFrame.bind(window) : setTimeout;
+  }
+  return _nativeScheduler;
+}
