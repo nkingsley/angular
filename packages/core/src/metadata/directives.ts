@@ -77,6 +77,9 @@ export interface DirectiveDecorator {
   new (obj: Directive): Directive;
 }
 
+/**
+ * @publicApi
+ */
 export interface Directive {
   /**
    * The CSS selector that triggers the instantiation of a directive.
@@ -260,6 +263,7 @@ export interface Directive {
  * Directive decorator and metadata.
  *
  * @Annotation
+ * @publicApi
  */
 export interface Directive {
   /**
@@ -512,6 +516,8 @@ export interface ComponentDecorator {
 
 /**
  * Supplies configuration metadata for an Angular component.
+ *
+ * @publicApi
  */
 export interface Component extends Directive {
   /**
@@ -645,6 +651,8 @@ export interface PipeDecorator {
 
 /**
  * Type of the Pipe metadata.
+ *
+ * @publicApi
  */
 export interface Pipe {
   /**
@@ -704,7 +712,7 @@ export interface InputDecorator {
 /**
  * Type of metadata for an `Input` property.
  *
- *
+ * @publicApi
  */
 export interface Input {
   /**
@@ -824,6 +832,8 @@ export interface OutputDecorator {
 
 /**
  * Type of the Output metadata.
+ *
+ * @publicApi
  */
 export interface Output { bindingPropertyName?: string; }
 
@@ -879,6 +889,7 @@ export interface HostBindingDecorator {
 /**
  * Type of the HostBinding metadata.
  *
+ * @publicApi
  */
 export interface HostBinding { hostPropertyName?: string; }
 
@@ -902,6 +913,8 @@ export interface HostListenerDecorator {
 
 /**
  * Type of the HostListener metadata.
+ *
+ * @publicApi
  */
 export interface HostListener {
   /**
