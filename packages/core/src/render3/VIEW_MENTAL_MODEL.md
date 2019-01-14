@@ -88,7 +88,7 @@ Summary:
 - Implicit _host_ is created as part of parent component's view.
 - Explicit _host_ needs to be created manually for the top-most component (which has no parent and is being inserted programmatically).
 
-# API
+# Basic Walk Through
 
 To better understand _host_ we are providing several examples of usage. 
 These examples assume that following components and directives have been declared.
@@ -113,12 +113,11 @@ class MyApp {}
 class MyDirective {}
 ```
 
-## `View`s
-
 A view is a collection of DOM elements. 
 Views can be inserted and manipulated like normal DOM elements.
 Views have their associated _change detectors_ which need to be invoked to update the views.
-The _change detectors_ can be invoked manually are added into a change detector tree to be change detected as part of other change detection passes.
+The _change detectors_ tree structure reflects `View` tree structure by default. 
+Additional APIs are available to modify the _change detector_ tree ordering.
 
 ```typescript
 interface View {
@@ -127,33 +126,49 @@ interface View {
 ```
 NOTE: The `View` interface is the opaque version of `LView`. 
 
-### Creating Host `View`
+First lets create a host view and add a component to it programmatically.
 
 ```typescript
 // We need an existing DOM element
-const myAppHostElement = document.createElement('my-app');
-
-// Wrap the existing DOM element into a Host View.
-const myAppHostView: View = createHostView(myAppHostElement);
-```
-NOTE: Host `View`s are unique in that their `TView` is not shared. 
-      This means that this `TView` can be fully dynamic, in that we can easily add components and directives, host bindings, etc to this host view.
-
-### Creating Component `View`
-
-``` typescript
 // Component is not responsible for creating its own host element. For this reason we have
 // to create the host element manually using standard DOM API.
 const myAppHostElement = document.createElement('my-app');
 
 // Wrap the existing DOM element into a Host View.
 const myAppHostView: View = createHostView(myAppHostElement);
+```
+NOTE: 
+- Host `View`s are unique in that their `TView` is not shared. 
+  This means that this `TView` can be fully dynamic, in that we can easily add components and directives, host bindings, etc to this host view.
+- Host `View` has an internal flag which declares that its `TView` is not shared and that it modifiable.
+  The modifiability is what allows us to add components, directives and host bindings to the `View` dynamically.
+- Host `TView`, which is modifiable, can have a scheduler attached to.
 
+Now let's attach a component to the host view.
+
+``` typescript
 // We can now create a component and attach it to the host element.
 const myApp: MyApp = createComponent(myAppHostView, MyApp);
 ```
 
-### Creating Embedded Views
+The resulting code will attach the `MyApp` to the DOM tree. 
+This new API allows us to removed the current `renderComponent` API for bootstrapping.
+The resulting bootstrap of the vanilla application will thous be:
+
+```html
+<html>
+  <body>
+    <my-application id="myApp"></my-application>
+  </body>
+  <script src="angular/core.umd.js"></script>
+  <script src="my-app.umd.js"></script>
+  <script>
+    ng.createComponent(MyApp, ng.createHostView(myApp));
+  </script>
+</html>
+```
+
+## Creating Embedded Views
 
 Lets assume that we have a following template
 ```html
@@ -179,11 +194,25 @@ interface MyContext {
 }
 
 const anchor = ...; // retrieve `<!-- NG: <ng-template> -->`
-const embeddedViewFactory: EmbeddedViewFactory<MyContext> = getEmbeddedViewFactory(anchor);
+const embeddedViewFactory: ViewFactory<MyContext> = getViewFactory(anchor);
 const myContext = { name: 'World' };
 const embeddedView: View = embeddedViewFactory(context);
 insertViewAfter(embeddedView, anchor);
 ```
+
+
+# Change Detection
+
+An application is a collection of `View`s in a tree.
+Each `View` has an associated context and a change detector.
+Context is the object which is used as the implicit context when evaluating the expression in the `View` (either as part of bindings or events).
+A change detector is what evaluates the bindings and if the binding changes updates the corresponding DOM nodes.
+When a `View` is appended as a child of another `View` their change detectors are attached in the same way.
+This implies that by default the change detector tree follows the same tree as the 
+
+-------------
+NOTES
+
 
 ### Retrieving Views
 
