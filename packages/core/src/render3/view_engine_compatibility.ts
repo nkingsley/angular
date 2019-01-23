@@ -206,6 +206,10 @@ export function createContainerRef(
 
       createEmbeddedView<C>(templateRef: ViewEngine_TemplateRef<C>, context?: C, index?: number):
           viewEngine_EmbeddedViewRef<C> {
+        const embededView = (templateRef as IvyTemplateRef)._embededViewFactory(context);
+        const afterView = index == null ? null : this.get(index)._lView;
+        viewContainerInsertAfter(this._viewContainer, embededView, afterView);
+        //////////////////////////
         const adjustedIdx = this._adjustIndex(index);
         const viewRef = (templateRef as any)
                             .createEmbeddedView(

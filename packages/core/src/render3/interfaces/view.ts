@@ -48,13 +48,32 @@ export const DECLARATION_VIEW = 17;
 export const HEADER_OFFSET = 18;
 
 
-// This interface replaces the real LView interface if it is an arg or a
-// return value of a public instruction. This ensures we don't need to expose
-// the actual interface, which should be kept private.
-export interface OpaqueViewState {
-  '__brand__': 'Brand for OpaqueViewState that nothing will match';
+/**
+ *
+ */
+export interface View<T extends{} = {}> {
+  __ng_brand__: 'Angular opaque reference representing a View. DO NOT READ/MANIPULATE!';
 }
 
+/**
+ *
+ */
+export interface ViewContainer {
+  __ng_brand__: 'Angular opaque reference representing a ViewContainer. DO NOT READ/MANIPULATE!';
+}
+
+// TODO: get rid of this.
+export type OpaqueViewState = View;
+
+/**
+ *
+ */
+export interface EmbeddedViewFactory<T extends{}> {
+  /**
+   * @param context
+   */
+  (context: T): View<T>;
+}
 
 /**
  * `LView` stores all of the information needed to process the instructions as

@@ -549,6 +549,7 @@ function getHostNative(currentView: LView): RElement|null {
  */
 export function nativeInsertBefore(
     renderer: Renderer3, parent: RElement, child: RNode, beforeNode: RNode | null): void {
+  debugger;
   if (isProceduralRenderer(renderer)) {
     renderer.insertBefore(parent, child, beforeNode);
   } else {
