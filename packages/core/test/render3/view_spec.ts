@@ -14,6 +14,7 @@ import {getEmbeddedViewFactory, viewContainerInsertAfter, getViewContainer} from
 describe('getEmbeddedViewFactory', () => {
   fit('should get the embedded view from a comment added by ng-template', () => {
 
+    const log: any[] = [];
     const fixture = new TemplateFixture(
         () => {
           element(0, 'div');
@@ -28,6 +29,7 @@ describe('getEmbeddedViewFactory', () => {
             }
             if (rf & RenderFlags.Update) {
               textBinding(3, bind(ctx.name));
+              log.push(ctx.name);
             }
           }, 4, 1);
         },
@@ -46,12 +48,16 @@ describe('getEmbeddedViewFactory', () => {
     viewContainerInsertAfter(commentViewContainer, embeddedViewFactory({name: 'Kara'}), null);
     viewContainerInsertAfter(commentViewContainer, embeddedViewFactory({name: 'Ben'}), null);
 
+    // Make sure to grab the comment and the div in a different order than declared.
+    // We want to assert that change detection is in the same order as the declared elements.
     const divViewContainer = getViewContainer(fixture.hostElement.firstChild !) !;
     viewContainerInsertAfter(divViewContainer, embeddedViewFactory({name: 'Misko'}), null);
 
     debugger;
     fixture.update();
+    console.log(log);
     console.log(fixture.htmlWithContainerComments);
+    expect(log).toEqual(['Misko', 'Kara', 'Ben']);
     expect(fixture.htmlWithContainerComments)
         .toEqual('<div></div><!--container--><b>Hello </b><i>Ben</i><b>Hello </b><i>Kara</i>');
   });

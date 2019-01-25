@@ -2323,7 +2323,8 @@ export function containerRefreshEnd(): void {
  * by executing an associated template function.
  */
 function refreshDynamicEmbeddedViews(lView: LView) {
-  for (let current = lView[CHILD_HEAD]; current !== null; current = current ![NEXT]) {
+  let current = lView[CHILD_HEAD];
+  while (current) {
     // Note: current can be an LView or an LContainer instance, but here we are only interested
     // in LContainer. We can tell it's an LContainer because its length is less than the LView
     // header.
