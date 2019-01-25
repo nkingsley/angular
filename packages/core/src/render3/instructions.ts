@@ -32,9 +32,9 @@ import {CssSelectorList, NG_PROJECT_AS_ATTR_NAME} from './interfaces/projection'
 import {LQueries} from './interfaces/query';
 import {GlobalTargetResolver, ProceduralRenderer3, RComment, RElement, RText, Renderer3, RendererFactory3, isProceduralRenderer} from './interfaces/renderer';
 import {SanitizerFn} from './interfaces/sanitization';
-import {BINDING_INDEX, CLEANUP, CONTAINER_INDEX, CONTEXT, DECLARATION_VIEW, FLAGS, HEADER_OFFSET, HOST, INJECTOR, InitPhaseState, LView, LViewFlags, NEXT, OpaqueViewState, PARENT, QUERIES, RENDERER, RENDERER_FACTORY, RootContext, RootContextFlags, SANITIZER, TAIL, TData, TVIEW, TView, T_HOST} from './interfaces/view';
+import {BINDING_INDEX, CHILD_HEAD, CHILD_TAIL, CLEANUP, CONTAINER_INDEX, CONTEXT, DECLARATION_VIEW, FLAGS, HEADER_OFFSET, HOST, INJECTOR, InitPhaseState, LView, LViewFlags, NEXT, OpaqueViewState, PARENT, QUERIES, RENDERER, RENDERER_FACTORY, RootContext, RootContextFlags, SANITIZER, TData, TVIEW, TView, T_HOST} from './interfaces/view';
 import {assertNodeOfPossibleTypes, assertNodeType} from './node_assert';
-import {appendChild, appendProjectedNode, createTextNode, getLViewChild, insertView, removeView} from './node_manipulation';
+import {appendChild, appendProjectedNode, createTextNode, insertView, removeView} from './node_manipulation';
 import {isNodeMatchingSelectorList, matchingSelectorIndex} from './node_selector_matcher';
 import {decreaseElementDepthCount, enterView, getBindingsEnabled, getCheckNoChangesMode, getContextLView, getCurrentDirectiveDef, getElementDepthCount, getIsParent, getLView, getPreviousOrParentTNode, increaseElementDepthCount, isCreationMode, leaveView, nextContextImpl, resetComponentState, setBindingRoot, setCheckNoChangesMode, setCurrentDirectiveDef, setCurrentQueryIndex, setIsParent, setPreviousOrParentTNode} from './state';
 import {getInitialClassNameValue, getInitialStyleStringValue, initializeStaticContext as initializeStaticStylingContext, patchContextWithStaticAttrs, renderInitialClasses, renderInitialStyles, renderStyling, updateClassProp as updateElementClassProp, updateContextWithBindings, updateStyleProp as updateElementStyleProp, updateStylingMap} from './styling/class_and_style_bindings';
@@ -773,7 +773,6 @@ export function createTView(
     viewQuery: viewQuery,
     node: null !,
     data: blueprint.slice().fill(null, bindingStartIndex),
-    childIndex: -1,  // Children set in addToViewTree(), if any
     bindingStartIndex: bindingStartIndex,
     viewQueryStartIndex: initialViewLength,
     expandoStartIndex: initialViewLength,
@@ -2049,11 +2048,10 @@ function addComponentLogic<T>(
   // accessed through their containers because they may be removed / re-added later.
   const rendererFactory = lView[RENDERER_FACTORY];
   const componentView = addToViewTree(
-      lView, previousOrParentTNode.index as number,
-      createLView(
-          lView, tView, null, def.onPush ? LViewFlags.Dirty : LViewFlags.CheckAlways,
-          lView[previousOrParentTNode.index], previousOrParentTNode as TElementNode,
-          rendererFactory, lView[RENDERER_FACTORY].createRenderer(native as RElement, def)));
+      lView, createLView(
+                 lView, tView, null, def.onPush ? LViewFlags.Dirty : LViewFlags.CheckAlways,
+                 lView[previousOrParentTNode.index], previousOrParentTNode as TElementNode,
+                 rendererFactory, lView[RENDERER_FACTORY].createRenderer(native as RElement, def)));
 
   componentView[T_HOST] = previousOrParentTNode as TElementNode;
 
@@ -2246,7 +2244,7 @@ function containerInternal(
 
   // Containers are added to the current view tree instead of their embedded views
   // because views can be removed and re-inserted.
-  addToViewTree(lView, index + HEADER_OFFSET, lContainer);
+  addToViewTree(lView, lContainer);
 
   ngDevMode && assertNodeType(getPreviousOrParentTNode(), TNodeType.Container);
   return tNode;
@@ -2323,7 +2321,7 @@ export function containerRefreshEnd(): void {
  * by executing an associated template function.
  */
 function refreshDynamicEmbeddedViews(lView: LView) {
-  for (let current = getLViewChild(lView); current !== null; current = current[NEXT]) {
+  for (let current = lView[CHILD_HEAD]; current !== null; current = current[NEXT]) {
     // Note: current can be an LView or an LContainer instance, but here we are only interested
     // in LContainer. We can tell it's an LContainer because its length is less than the LView
     // header.
@@ -2651,19 +2649,22 @@ export function projection(nodeIndex: number, selectorIndex: number = 0, attrs?:
  *
  * @param lView The view where LView or LContainer should be added
  * @param adjustedHostIndex Index of the view's host node in LView[], adjusted for header
- * @param state The LView or LContainer to add to the view tree
+ * @param lViewOrLContainer The LView or LContainer to add to the view tree
  * @returns The state passed in
  */
-export function addToViewTree<T extends LView|LContainer>(
-    lView: LView, adjustedHostIndex: number, state: T): T {
-  const tView = lView[TVIEW];
-  if (lView[TAIL]) {
-    lView[TAIL] ![NEXT] = state;
-  } else if (tView.firstTemplatePass) {
-    tView.childIndex = adjustedHostIndex;
+export function addToViewTree<T extends LView|LContainer>(lView: LView, lViewOrLContainer: T): T {
+  // TODO(benlesh/misko): This implementation is incorrect, because it always adds the LContainer to
+  // the end
+  // of the queue, which means if the developer asks for the LContainers out of order, the change
+  // detection will
+  // run out of order.
+  if (lView[CHILD_HEAD]) {
+    lView[CHILD_TAIL] ![NEXT] = lViewOrLContainer;
+  } else {
+    lView[CHILD_HEAD] = lViewOrLContainer;
   }
-  lView[TAIL] = state;
-  return state;
+  lView[CHILD_TAIL] = lViewOrLContainer;
+  return lViewOrLContainer;
 }
 
 ///////////////////////////////

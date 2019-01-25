@@ -40,12 +40,13 @@ export const INJECTOR = 10;
 export const RENDERER_FACTORY = 11;
 export const RENDERER = 12;
 export const SANITIZER = 13;
-export const TAIL = 14;
-export const CONTAINER_INDEX = 15;
-export const CONTENT_QUERIES = 16;
-export const DECLARATION_VIEW = 17;
+export const CHILD_HEAD = 14;
+export const CHILD_TAIL = 15;
+export const CONTAINER_INDEX = 16;
+export const CONTENT_QUERIES = 17;
+export const DECLARATION_VIEW = 18;
 /** Size of LView's header. Necessary to adjust for it when setting slots.  */
-export const HEADER_OFFSET = 18;
+export const HEADER_OFFSET = 19;
 
 
 // This interface replaces the real LView interface if it is an arg or a
@@ -162,12 +163,24 @@ export interface LView extends Array<any> {
   [SANITIZER]: Sanitizer|null;
 
   /**
+   * Reference to the first LView or LContainer beneath this LView in
+   * the hierarchy.
+   *
+   * Necessary to store this so views can traverse through their nested views
+   * to remove listeners and call onDestroy callbacks.
+   *
+   * For embedded views, we store the index of an LContainer's host rather than the first
+   * LView to avoid managing splicing when views are added/removed.
+   */
+  [CHILD_HEAD]: LView|LContainer|null;
+
+  /**
    * The last LView or LContainer beneath this LView in the hierarchy.
    *
    * The tail allows us to quickly add a new state to the end of the view list
    * without having to propagate starting from the first child.
    */
-  [TAIL]: LView|LContainer|null;
+  [CHILD_TAIL]: LView|LContainer|null;
 
   /**
    * The index of the parent container's host node. Applicable only to embedded views that
@@ -378,18 +391,6 @@ export interface TView {
    * the beginning of view query list before we invoke view queries again.
    */
   viewQueryStartIndex: number;
-
-  /**
-   * Index of the host node of the first LView or LContainer beneath this LView in
-   * the hierarchy.
-   *
-   * Necessary to store this so views can traverse through their nested views
-   * to remove listeners and call onDestroy callbacks.
-   *
-   * For embedded views, we store the index of an LContainer's host rather than the first
-   * LView to avoid managing splicing when views are added/removed.
-   */
-  childIndex: number;
 
   /**
    * A reference to the first child node located in the view.

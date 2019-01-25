@@ -12,10 +12,10 @@ import {attachPatchData} from './context_discovery';
 import {callHooks} from './hooks';
 import {LContainer, NATIVE, VIEWS, unusedValueExportToPlacateAjd as unused1} from './interfaces/container';
 import {ComponentDef} from './interfaces/definition';
-import {TContainerNode, TElementContainerNode, TElementNode, TNode, TNodeFlags, TNodeType, TViewNode, unusedValueExportToPlacateAjd as unused2} from './interfaces/node';
+import {TElementNode, TNode, TNodeFlags, TNodeType, TViewNode, unusedValueExportToPlacateAjd as unused2} from './interfaces/node';
 import {unusedValueExportToPlacateAjd as unused3} from './interfaces/projection';
 import {ProceduralRenderer3, RComment, RElement, RNode, RText, Renderer3, isProceduralRenderer, unusedValueExportToPlacateAjd as unused4} from './interfaces/renderer';
-import {CLEANUP, CONTAINER_INDEX, FLAGS, HEADER_OFFSET, HookData, LView, LViewFlags, NEXT, PARENT, QUERIES, RENDERER, TVIEW, T_HOST, unusedValueExportToPlacateAjd as unused5} from './interfaces/view';
+import {CHILD_HEAD, CLEANUP, CONTAINER_INDEX, FLAGS, HEADER_OFFSET, HookData, LView, LViewFlags, NEXT, PARENT, QUERIES, RENDERER, TVIEW, T_HOST, unusedValueExportToPlacateAjd as unused5} from './interfaces/view';
 import {assertNodeType} from './node_assert';
 import {findComponentView, getNativeByTNode, isComponent, isLContainer, isRootView, readElementValue, renderStringify} from './util';
 
@@ -252,10 +252,11 @@ export function addRemoveViewFromContainer(
  */
 export function destroyViewTree(rootView: LView): void {
   // If the view has no children, we can clean it up and return early.
-  if (rootView[TVIEW].childIndex === -1) {
+  const rootChildHead = rootView[CHILD_HEAD];
+  if (!rootChildHead) {
     return cleanUpView(rootView);
   }
-  let viewOrContainer: LView|LContainer|null = getLViewChild(rootView);
+  let viewOrContainer: LView|LContainer|null = rootView[CHILD_HEAD];
 
   while (viewOrContainer) {
     let next: LView|LContainer|null = null;
@@ -263,7 +264,7 @@ export function destroyViewTree(rootView: LView): void {
     if (viewOrContainer.length >= HEADER_OFFSET) {
       // If LView, traverse down to child.
       const view = viewOrContainer as LView;
-      if (view[TVIEW].childIndex > -1) next = getLViewChild(view);
+      if (rootChildHead) next = view[CHILD_HEAD];
     } else {
       // If container, traverse down to its first LView.
       const container = viewOrContainer as LContainer;
@@ -371,12 +372,6 @@ export function removeView(lContainer: LContainer, removeIndex: number) {
   const view = lContainer[VIEWS][removeIndex];
   detachView(lContainer, removeIndex);
   destroyLView(view);
-}
-
-/** Gets the child of the given LView */
-export function getLViewChild(lView: LView): LView|LContainer|null {
-  const childIndex = lView[TVIEW].childIndex;
-  return childIndex === -1 ? null : lView[childIndex];
 }
 
 /**
