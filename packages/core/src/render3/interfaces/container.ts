@@ -41,11 +41,11 @@ export const LCONTAINER_LENGTH = 7;
  */
 export interface LContainer extends Array<any> {
   /**
+   * This is only used for JavaScript inline templates, in the case of dynamically
+   * created views (ViewContainerRef), this should be set to -1.
+   *
    * The next active index in the views array to read or write to. This helps us
    * keep track of where we are in the views array.
-   * In the case the LContainer is created for a ViewContainerRef,
-   * it is set to null to identify this scenario, as indices are "absolute" in that case,
-   * i.e. provided directly by the user of the ViewContainerRef API.
    */
   [ACTIVE_INDEX]: number;
 

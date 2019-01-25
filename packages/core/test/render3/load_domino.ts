@@ -15,6 +15,7 @@ import {getDOM} from '@angular/platform-browser/src/dom/dom_adapter';
 
 if (typeof window == 'undefined') {
   const domino = require('domino');
+  const dominoImpl = domino.impl;
 
   DominoAdapter.makeCurrent();
   (global as any).document = getDOM().getDefaultDocument();
@@ -25,9 +26,33 @@ if (typeof window == 'undefined') {
   // 'stopImmediatePropagation' of object '#<Event>'
   (global as any).Event = null;
 
+
+  // HACK: https://github.com/fgnass/domino/issues/141
+  const Element = dominoImpl.Element;
+  // const Comment = dominoImpl.Comment;
+  // const Node = dominoImpl.Node;
+  // const nodeProto = Node.prototype;
+
+  // const Node_insertBefore = function(
+  //     this: Node, newNode: Node, referenceNode: Node|null|undefined) {
+  //   if (referenceNode) {
+  //     nodeProto.insertBefore.call(this, newNode, referenceNode);
+  //   } else {
+  //     nodeProto.appendChild.call(this, newNode);
+  //   }
+  // };
+
+  // Object.defineProperty(
+  //     Element.prototype, 'insertBefore',
+  //     {configurable: true, writable: true, value: Node_insertBefore});
+
+  // Object.defineProperty(
+  //     Comment.prototype, 'insertBefore',
+  //     {configurable: true, writable: true, value: Node_insertBefore});
+
   // For animation tests, see
   // https://github.com/angular/angular/blob/master/packages/animations/browser/src/render/shared.ts#L140
-  (global as any).Element = domino.impl.Element;
+  (global as any).Element = Element;
   (global as any).isBrowser = false;
   (global as any).isNode = true;
 }

@@ -15,8 +15,11 @@ import {LContext, MONKEY_PATCH_KEY_NAME} from './interfaces/context';
 import {ComponentDef, DirectiveDef} from './interfaces/definition';
 import {NO_PARENT_INJECTOR, RelativeInjectorLocation, RelativeInjectorLocationFlags} from './interfaces/injector';
 import {TContainerNode, TElementNode, TNode, TNodeFlags, TNodeType} from './interfaces/node';
-import {RComment, RElement, RText} from './interfaces/renderer';
+import {RComment, RElement, RNode, RText} from './interfaces/renderer';
+import {StylingContext} from './interfaces/styling';
 import {CONTEXT, DECLARATION_VIEW, FLAGS, HEADER_OFFSET, HOST, LView, LViewFlags, PARENT, RootContext, TData, TVIEW, T_HOST} from './interfaces/view';
+
+
 
 /**
  * Gets the parent LView of the passed LView, if the PARENT is an LContainer, will get the parent of
@@ -36,6 +39,7 @@ export function getLViewParent(lView: LView): LView|null {
 export function isLView(value: any): value is LView {
   return Array.isArray(value) && value.length >= HEADER_OFFSET;
 }
+
 
 /**
  * Returns whether the values are different from a change detection stand point.
@@ -107,6 +111,20 @@ export function readElementValue(value: any): RElement {
     value = value[HOST] as any;
   }
   return value;
+}
+
+/**
+ * TODO: comment
+ * @param value
+ */
+export function getLContainer(value: LContainer | RNode | StylingContext): LContainer|null {
+  while (Array.isArray(value)) {
+    value = value[HOST] as any;
+    if (isLContainer(value)) {
+      return value;
+    }
+  }
+  return null;
 }
 
 /**

@@ -611,7 +611,7 @@ function nativeRemoveChild(
  * Returns a native parent of a given native node.
  */
 export function nativeParentNode(renderer: Renderer3, node: RNode): RElement|null {
-  return (isProceduralRenderer(renderer) ? renderer.parentNode(node) : node.parentNode) as RElement;
+  return isProceduralRenderer(renderer) ? renderer.parentNode(node) : node.parentElement;
 }
 
 /**

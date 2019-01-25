@@ -42,7 +42,7 @@ import {getInitialClassNameValue, getInitialStyleStringValue, initializeStaticCo
 import {BoundPlayerFactory} from './styling/player_factory';
 import {ANIMATION_PROP_PREFIX, allocateDirectiveIntoContext, createEmptyStylingContext, forceClassesAsString, forceStylesAsString, getStylingContext, hasClassInput, hasStyleInput, hasStyling, isAnimationProp} from './styling/util';
 import {NO_CHANGE} from './tokens';
-import {INTERPOLATION_DELIMITER, findComponentView, getComponentViewByIndex, getLViewParent, getNativeByIndex, getNativeByTNode, getRootContext, getRootView, getTNode, isComponent, isComponentDef, isContentQueryHost, isRootView, loadInternal, readElementValue, readPatchedLView, renderStringify} from './util';
+import {INTERPOLATION_DELIMITER, findComponentView, getComponentViewByIndex, getLViewParent, getNativeByIndex, getNativeByTNode, getRootContext, getRootView, getTNode, isComponent, isComponentDef, isContentQueryHost, isLContainer, isRootView, loadInternal, readElementValue, readPatchedLView, renderStringify} from './util';
 
 
 
@@ -1294,7 +1294,6 @@ function savePropertyDebugData(
  * @param adjustedIndex The index of the TNode in TView.data, adjusted for HEADER_OFFSET
  * @param tagName The tag name of the node
  * @param attrs The attributes defined on this node
- * @param tViews Any TViews attached to this node
  * @returns the TNode object
  */
 export function createTNode(
@@ -2240,7 +2239,8 @@ function containerInternal(
   const comment = lView[RENDERER].createComment(ngDevMode ? 'container' : '');
   ngDevMode && ngDevMode.rendererCreateComment++;
   const tNode = createNodeAtIndex(index, TNodeType.Container, comment, tagName, attrs);
-  const lContainer = lView[adjustedIndex] = createLContainer(lView[adjustedIndex], lView, comment);
+  const lContainer = lView[adjustedIndex] =
+      createLContainer(lView[adjustedIndex], lView, comment, false);
 
   appendChild(comment, tNode, lView);
 
@@ -2323,19 +2323,20 @@ export function containerRefreshEnd(): void {
  * by executing an associated template function.
  */
 function refreshDynamicEmbeddedViews(lView: LView) {
-  for (let current = lView[CHILD_HEAD]; current !== null; current = current[NEXT]) {
+  for (let current = lView[CHILD_HEAD]; current !== null; current = current ![NEXT]) {
     // Note: current can be an LView or an LContainer instance, but here we are only interested
     // in LContainer. We can tell it's an LContainer because its length is less than the LView
     // header.
-    if (current.length < HEADER_OFFSET && current[ACTIVE_INDEX] === -1) {
-      const container = current as LContainer;
-      for (let i = 0; i < container[VIEWS].length; i++) {
-        const dynamicViewData = container[VIEWS][i];
+    if (isLContainer(current) && current[ACTIVE_INDEX] === -1) {
+      const views = current[VIEWS];
+      for (let i = 0; i < views.length; i++) {
+        const dynamicViewData = views[i];
         // The directives and pipes are not needed here as an existing view is only being refreshed.
         ngDevMode && assertDefined(dynamicViewData[TVIEW], 'TView must be allocated');
         renderEmbeddedTemplate(dynamicViewData, dynamicViewData[TVIEW], dynamicViewData[CONTEXT] !);
       }
     }
+    current = current[NEXT];
   }
 }
 
