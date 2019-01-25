@@ -45,7 +45,7 @@ export const CHILD_TAIL = 15;
 export const CONTENT_QUERIES = 16;
 export const DECLARATION_VIEW = 17;
 /** Size of LView's header. Necessary to adjust for it when setting slots.  */
-export const HEADER_OFFSET = 18;
+export const HEADER_OFFSET = 19;
 
 
 // This interface replaces the real LView interface if it is an arg or a
