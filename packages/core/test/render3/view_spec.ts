@@ -45,20 +45,25 @@ describe('getEmbeddedViewFactory', () => {
 
     const commentViewContainer = getViewContainer(comment) !;
 
-    viewContainerInsertAfter(commentViewContainer, embeddedViewFactory({name: 'Kara'}), null);
-    viewContainerInsertAfter(commentViewContainer, embeddedViewFactory({name: 'Ben'}), null);
+    const bView = embeddedViewFactory({name: 'B'});
+    // Putting this in the very front.
+    viewContainerInsertAfter(commentViewContainer, bView, null);
+    // Now putting this in front of B (because it's in the very front).
+    viewContainerInsertAfter(commentViewContainer, embeddedViewFactory({name: 'A'}), null);
+    // Putting this one after B
+    viewContainerInsertAfter(commentViewContainer, embeddedViewFactory({name: 'C'}), bView);
 
     // Make sure to grab the comment and the div in a different order than declared.
     // We want to assert that change detection is in the same order as the declared elements.
     const divViewContainer = getViewContainer(fixture.hostElement.firstChild !) !;
-    viewContainerInsertAfter(divViewContainer, embeddedViewFactory({name: 'Misko'}), null);
+    viewContainerInsertAfter(divViewContainer, embeddedViewFactory({name: 'X'}), null);
 
     debugger;
     fixture.update();
     console.log(log);
     console.log(fixture.htmlWithContainerComments);
-    expect(log).toEqual(['Misko', 'Kara', 'Ben']);
+    expect(log).toEqual(['X', 'A', 'B', 'C']);
     expect(fixture.htmlWithContainerComments)
-        .toEqual('<div></div><!--container--><b>Hello </b><i>Ben</i><b>Hello </b><i>Kara</i>');
+        .toEqual('<div></div><!--container--><b>Hello </b><i>A</i><b>Hello </b><i>A</i>');
   });
 });

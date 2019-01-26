@@ -16,7 +16,7 @@ import {RComment, RElement, RNode} from './interfaces/renderer';
 import {DECLARATION_VIEW, EmbeddedViewFactory, FLAGS, HEADER_OFFSET, HOST, LView, LViewFlags, PARENT, QUERIES, RENDERER, TVIEW, View, ViewContainer} from './interfaces/view';
 import {insertView, nativeInsertBefore} from './node_manipulation';
 import {getIsParent, setIsParent, setPreviousOrParentTNode} from './state';
-import {getLContainer as readLContainer, readElementValue} from './util';
+import {getLContainer as readLContainer, getLastRootElementFromView, readElementValue} from './util';
 
 
 
@@ -111,6 +111,7 @@ export function getViewContainer<T extends{} = {}>(node: RNode): ViewContainer|n
       lContainer = lView[nodeIndex] = createLContainer(
           lViewContainerOrElement as RElement | RComment, lView,
           lViewContainerOrElement as RComment, true);
+      addToViewTree(lView, lContainer);
     }
   }
   return lContainer as ViewContainer | null;
@@ -118,21 +119,25 @@ export function getViewContainer<T extends{} = {}>(node: RNode): ViewContainer|n
 
 
 /**
- *
+ * TODO
  */
 export function viewContainerInsertAfter(
     viewContainer: ViewContainer, view: View, insertAfter: View | null): void {
+  // TODO(benlesh): refactor these functions to have internal versions.
+  // TODO(benlesh): add assertions for the arguments, ensure they're the right type.
   const lContainer = viewContainer as any as LContainer;
   const lView = view as any as LView;
   const containerNode = readElementValue(lContainer[HOST]);
   // const node = readElementValue(lView[HOST]);
-  const insertAfterNode = readElementValue(insertAfter) || containerNode;
+  const insertAfterNode =
+      insertAfter ? getLastRootElementFromView(insertAfter as any as LView) : containerNode;
   const tView = lView[TVIEW];
   let tNode = tView.firstChild;
   ngDevMode && assertDefined(tNode, 'View has no nodes');
 
   insertView(lView, lContainer, lContainer[ACTIVE_INDEX]);
 
+  debugger;
   const referenceNode = insertAfterNode.nextSibling;
   while (tNode) {
     const node = lView[tNode.index];

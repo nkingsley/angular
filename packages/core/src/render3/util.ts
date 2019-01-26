@@ -114,6 +114,22 @@ export function readElementValue(value: any): RElement {
 }
 
 /**
+ * TODO
+ * @param lView
+ */
+export function getLastRootElementFromView(lView: LView): RNode {
+  const tView = lView[TVIEW];
+  let child = tView.firstChild;
+  ngDevMode && assertDefined(child, 'tView must have at least one root element');
+  let lastChild: TNode;
+  while (child) {
+    lastChild = child;
+    child = child.next;
+  }
+  return lView[lastChild !.index];
+}
+
+/**
  * TODO: comment
  * @param value
  */
