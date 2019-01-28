@@ -99,7 +99,7 @@ export function getViewComponent<T = {}>(element: Element | {}): T|null {
   let lView: LView = context.lView;
   while (lView[PARENT] && lView[HOST] === null) {
     // As long as lView[HOST] is null we know we are part of sub-template such as `*ngIf`
-    lView = lView[PARENT] !;
+    lView = lView[PARENT] !as LView;
   }
 
   return lView[FLAGS] & LViewFlags.IsRoot ? null : lView[CONTEXT] as T;
@@ -224,7 +224,7 @@ export function getRootView(componentOrView: LView | {}): LView {
     lView = readPatchedLView(componentOrView) !;
   }
   while (lView && !(lView[FLAGS] & LViewFlags.IsRoot)) {
-    lView = lView[PARENT] !;
+    lView = lView[PARENT] !as LView;
   }
   return lView;
 }

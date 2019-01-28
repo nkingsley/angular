@@ -32,7 +32,7 @@ import {CssSelectorList, NG_PROJECT_AS_ATTR_NAME} from './interfaces/projection'
 import {LQueries} from './interfaces/query';
 import {GlobalTargetResolver, ProceduralRenderer3, RComment, RElement, RText, Renderer3, RendererFactory3, isProceduralRenderer} from './interfaces/renderer';
 import {SanitizerFn} from './interfaces/sanitization';
-import {BINDING_INDEX, CHILD_HEAD, CHILD_TAIL, CLEANUP, CONTAINER_INDEX, CONTEXT, DECLARATION_VIEW, FLAGS, HEADER_OFFSET, HOST, INJECTOR, InitPhaseState, LView, LViewFlags, NEXT, OpaqueViewState, PARENT, QUERIES, RENDERER, RENDERER_FACTORY, RootContext, RootContextFlags, SANITIZER, TData, TVIEW, TView, T_HOST} from './interfaces/view';
+import {BINDING_INDEX, CHILD_HEAD, CHILD_TAIL, CLEANUP, CONTEXT, DECLARATION_VIEW, FLAGS, HEADER_OFFSET, HOST, INJECTOR, InitPhaseState, LView, LViewFlags, NEXT, OpaqueViewState, PARENT, QUERIES, RENDERER, RENDERER_FACTORY, RootContext, RootContextFlags, SANITIZER, TData, TVIEW, TView, T_HOST} from './interfaces/view';
 import {assertNodeOfPossibleTypes, assertNodeType} from './node_assert';
 import {appendChild, appendProjectedNode, createTextNode, insertView, removeView} from './node_manipulation';
 import {isNodeMatchingSelectorList, matchingSelectorIndex} from './node_selector_matcher';
@@ -798,7 +798,6 @@ function createViewBlueprint(bindingStartIndex: number, initialViewLength: numbe
   const blueprint = new Array(initialViewLength)
                         .fill(null, 0, bindingStartIndex)
                         .fill(NO_CHANGE, bindingStartIndex) as LView;
-  blueprint[CONTAINER_INDEX] = -1;
   blueprint[BINDING_INDEX] = bindingStartIndex;
   return blueprint;
 }
@@ -2406,7 +2405,7 @@ export function embeddedViewStart(viewBlockId: number, consts: number, vars: num
   if (lContainer) {
     if (isCreationMode(viewToRender)) {
       // it is a new view, insert it into collection of views for a given container
-      insertView(viewToRender, lContainer, lView, lContainer[ACTIVE_INDEX] !, -1);
+      insertView(viewToRender, lContainer, lContainer[ACTIVE_INDEX] !);
     }
     lContainer[ACTIVE_INDEX] !++;
   }
@@ -2451,7 +2450,7 @@ export function embeddedViewEnd(): void {
     lView[FLAGS] &= ~LViewFlags.CreationMode;
   }
   refreshDescendantViews(lView);  // update mode pass
-  leaveView(lView[PARENT] !);
+  leaveView(lView[PARENT] !as LView);
   setPreviousOrParentTNode(viewHost !);
   setIsParent(false);
 }
@@ -2597,7 +2596,7 @@ export function projection(nodeIndex: number, selectorIndex: number = 0, attrs?:
   const componentView = findComponentView(lView);
   const componentNode = componentView[T_HOST] as TElementNode;
   let nodeToProject = (componentNode.projection as(TNode | null)[])[selectorIndex];
-  let projectedView = componentView[PARENT] !;
+  let projectedView = componentView[PARENT] !as LView;
   let projectionNodeIndex = -1;
 
   if (Array.isArray(nodeToProject)) {
@@ -2619,7 +2618,7 @@ export function projection(nodeIndex: number, selectorIndex: number = 0, attrs?:
             projectionNodeStack[++projectionNodeIndex] = projectedView;
 
             nodeToProject = firstProjectedNode;
-            projectedView = currentComponentView[PARENT] !;
+            projectedView = currentComponentView[PARENT] !as LView;
             continue;
           }
         }
@@ -2654,10 +2653,8 @@ export function projection(nodeIndex: number, selectorIndex: number = 0, attrs?:
  */
 export function addToViewTree<T extends LView|LContainer>(lView: LView, lViewOrLContainer: T): T {
   // TODO(benlesh/misko): This implementation is incorrect, because it always adds the LContainer to
-  // the end
-  // of the queue, which means if the developer asks for the LContainers out of order, the change
-  // detection will
-  // run out of order.
+  // the end of the queue, which means if the developer asks for the LContainers out of order, the
+  // change detection will run out of order.
   if (lView[CHILD_HEAD]) {
     lView[CHILD_TAIL] ![NEXT] = lViewOrLContainer;
   } else {
@@ -2733,11 +2730,11 @@ export function markViewDirty(lView: LView): LView|null {
   while (lView) {
     lView[FLAGS] |= LViewFlags.Dirty;
     // Stop traversing up as soon as you find a root view that wasn't attached to any container
-    if (isRootView(lView) && lView[CONTAINER_INDEX] === -1) {
+    if (isRootView(lView) && !lView[PARENT]) {
       return lView;
     }
     // continue otherwise
-    lView = lView[PARENT] !;
+    lView = lView[PARENT] !as LView;
   }
   return null;
 }

@@ -85,7 +85,7 @@ export function loadInternal<T>(view: LView | TData, index: number): T {
  *
  * @param value The initial value in `LView`
  */
-export function readElementValue(value: RElement | StylingContext | LContainer | LView): RElement {
+export function readElementValue(value: any): RElement {
   while (Array.isArray(value)) {
     value = value[HOST] as any;
   }
@@ -128,7 +128,7 @@ export function isComponentDef<T>(def: DirectiveDef<T>): def is ComponentDef<T> 
   return (def as ComponentDef<T>).template !== null;
 }
 
-export function isLContainer(value: RElement | RComment | LContainer | StylingContext): boolean {
+export function isLContainer(value: any): value is LContainer {
   // Styling contexts are also arrays, but their first index contains an element node
   return Array.isArray(value) && value.length === LCONTAINER_LENGTH;
 }
@@ -147,7 +147,7 @@ export function getRootView(target: LView | {}): LView {
   ngDevMode && assertDefined(target, 'component');
   let lView = Array.isArray(target) ? (target as LView) : readPatchedLView(target) !;
   while (lView && !(lView[FLAGS] & LViewFlags.IsRoot)) {
-    lView = lView[PARENT] !;
+    lView = lView[PARENT] !as LView;
   }
   return lView;
 }

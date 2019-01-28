@@ -15,7 +15,7 @@ import {ComponentDef} from './interfaces/definition';
 import {TElementNode, TNode, TNodeFlags, TNodeType, TViewNode, unusedValueExportToPlacateAjd as unused2} from './interfaces/node';
 import {unusedValueExportToPlacateAjd as unused3} from './interfaces/projection';
 import {ProceduralRenderer3, RComment, RElement, RNode, RText, Renderer3, isProceduralRenderer, unusedValueExportToPlacateAjd as unused4} from './interfaces/renderer';
-import {CHILD_HEAD, CLEANUP, CONTAINER_INDEX, FLAGS, HEADER_OFFSET, HookData, LView, LViewFlags, NEXT, PARENT, QUERIES, RENDERER, TVIEW, T_HOST, unusedValueExportToPlacateAjd as unused5} from './interfaces/view';
+import {CHILD_HEAD, CLEANUP, FLAGS, HEADER_OFFSET, HookData, LView, LViewFlags, NEXT, PARENT, QUERIES, RENDERER, TVIEW, T_HOST, unusedValueExportToPlacateAjd as unused5} from './interfaces/view';
 import {assertNodeType} from './node_assert';
 import {findComponentView, getNativeByTNode, isComponent, isLContainer, isRootView, readElementValue, renderStringify} from './util';
 
@@ -24,9 +24,8 @@ const unusedValueToPlacateAjd = unused1 + unused2 + unused3 + unused4 + unused5;
 export function getLContainer(tNode: TViewNode, embeddedView: LView): LContainer|null {
   if (tNode.index === -1) {
     // This is a dynamically created view inside a dynamic container.
-    // If the host index is -1, the view has not yet been inserted, so it has no parent.
-    const containerHostIndex = embeddedView[CONTAINER_INDEX];
-    return containerHostIndex > -1 ? embeddedView[PARENT] ![containerHostIndex] : null;
+    const container = embeddedView[PARENT];
+    return isLContainer(container) ? container : null;
   } else {
     // This is a inline view node (e.g. embeddedViewStart)
     return embeddedView[PARENT] ![tNode.parent !.index] as LContainer;
@@ -123,7 +122,7 @@ function walkTNodeTree(
         projectionNodeStack[++projectionNodeIndex] = tNode;
         projectionNodeStack[++projectionNodeIndex] = currentView !;
         if (head) {
-          currentView = componentView[PARENT] !;
+          currentView = componentView[PARENT] !as LView;
           nextTNode = currentView[TVIEW].data[head.index] as TNode;
         }
       }
@@ -156,7 +155,7 @@ function walkTNodeTree(
 
         // When exiting a container, the beforeNode must be restored to the previous value
         if (tNode.type === TNodeType.Container) {
-          currentView = currentView[PARENT] !;
+          currentView = currentView[PARENT] !as LView;
           beforeNode = currentView[tNode.index][NATIVE];
         }
 
@@ -295,13 +294,9 @@ export function destroyViewTree(rootView: LView): void {
  *
  * @param lView The view to insert
  * @param lContainer The container into which the view should be inserted
- * @param parentView The new parent of the inserted view
- * @param index The index at which to insert the view
- * @param containerIndex The index of the container node, if dynamic
+ * @param index Which index in the container to insert the child view into
  */
-export function insertView(
-    lView: LView, lContainer: LContainer, parentView: LView, index: number,
-    containerIndex: number) {
+export function insertView(lView: LView, lContainer: LContainer, index: number) {
   const views = lContainer[VIEWS];
 
   if (index > 0) {
@@ -317,12 +312,7 @@ export function insertView(
     lView[NEXT] = null;
   }
 
-  // Dynamically inserted views need a reference to their parent container's host so it's
-  // possible to jump from a view to its container's next when walking the node tree.
-  if (containerIndex > -1) {
-    lView[CONTAINER_INDEX] = containerIndex;
-    lView[PARENT] = parentView;
-  }
+  lView[PARENT] = lContainer;
 
   // Notify query that a new view has been added
   if (lView[QUERIES]) {
@@ -355,7 +345,6 @@ export function detachView(lContainer: LContainer, removeIndex: number): LView {
   if (viewToDetach[QUERIES]) {
     viewToDetach[QUERIES] !.removeView();
   }
-  viewToDetach[CONTAINER_INDEX] = -1;
   viewToDetach[PARENT] = null;
   // Unsets the attached flag
   viewToDetach[FLAGS] &= ~LViewFlags.Attached;
@@ -565,7 +554,7 @@ function getRenderParent(tNode: TNode, currentView: LView): RElement|null {
 function getHostNative(currentView: LView): RElement|null {
   const hostTNode = currentView[T_HOST];
   return hostTNode && hostTNode.type === TNodeType.Element ?
-      (getNativeByTNode(hostTNode, currentView[PARENT] !) as RElement) :
+      (getNativeByTNode(hostTNode, currentView[PARENT] !as LView) as RElement) :
       null;
 }
 
