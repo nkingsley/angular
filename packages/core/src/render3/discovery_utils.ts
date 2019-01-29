@@ -7,15 +7,17 @@
  */
 
 import {Injector} from '../di/injector';
-
 import {assertDefined} from '../util/assert';
+
+import {assertLView} from './assert';
 import {discoverLocalRefs, getComponentAtNodeIndex, getDirectivesAtNodeIndex, getLContext} from './context_discovery';
 import {NodeInjector} from './di';
+import {LContainer} from './interfaces/container';
 import {LContext} from './interfaces/context';
 import {DirectiveDef} from './interfaces/definition';
 import {TElementNode, TNode, TNodeProviderIndexes} from './interfaces/node';
 import {CLEANUP, CONTEXT, FLAGS, HOST, LView, LViewFlags, PARENT, RootContext, TVIEW} from './interfaces/view';
-import {readElementValue, readPatchedLView, renderStringify} from './util';
+import {getLViewParent, isLContainer, readElementValue, readPatchedLView, renderStringify} from './util';
 
 
 
@@ -97,9 +99,14 @@ export function getContext<T = {}>(element: Element): T|null {
 export function getViewComponent<T = {}>(element: Element | {}): T|null {
   const context = loadLContext(element) !;
   let lView: LView = context.lView;
-  while (lView[PARENT] && lView[HOST] === null) {
+  let parent: LView|LContainer|null;
+
+  ngDevMode && assertLView(lView);
+
+  while ((parent = lView[PARENT]) && lView[HOST] === null) {
     // As long as lView[HOST] is null we know we are part of sub-template such as `*ngIf`
-    lView = lView[PARENT] !as LView;
+    lView = isLContainer(parent) ? parent[PARENT] : parent;
+    ngDevMode && assertLView(lView);
   }
 
   return lView[FLAGS] & LViewFlags.IsRoot ? null : lView[CONTEXT] as T;
@@ -217,14 +224,14 @@ export function loadLContext(target: {}, throwOnNotFound: boolean = true): LCont
 export function getRootView(componentOrView: LView | {}): LView {
   let lView: LView;
   if (Array.isArray(componentOrView)) {
-    ngDevMode && assertDefined(componentOrView, 'lView');
+    ngDevMode && assertLView(componentOrView, true);
     lView = componentOrView as LView;
   } else {
     ngDevMode && assertDefined(componentOrView, 'component');
     lView = readPatchedLView(componentOrView) !;
   }
   while (lView && !(lView[FLAGS] & LViewFlags.IsRoot)) {
-    lView = lView[PARENT] !as LView;
+    lView = getLViewParent(lView) !;
   }
   return lView;
 }

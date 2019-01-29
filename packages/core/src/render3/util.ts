@@ -9,16 +9,34 @@
 import {assertDataInRange, assertDefined, assertGreaterThan, assertLessThan} from '../util/assert';
 import {global} from '../util/global';
 
+import {assertLView} from './assert';
 import {LCONTAINER_LENGTH, LContainer} from './interfaces/container';
 import {LContext, MONKEY_PATCH_KEY_NAME} from './interfaces/context';
 import {ComponentDef, DirectiveDef} from './interfaces/definition';
 import {NO_PARENT_INJECTOR, RelativeInjectorLocation, RelativeInjectorLocationFlags} from './interfaces/injector';
 import {TContainerNode, TElementNode, TNode, TNodeFlags, TNodeType} from './interfaces/node';
 import {RComment, RElement, RText} from './interfaces/renderer';
-import {StylingContext} from './interfaces/styling';
 import {CONTEXT, DECLARATION_VIEW, FLAGS, HEADER_OFFSET, HOST, LView, LViewFlags, PARENT, RootContext, TData, TVIEW, T_HOST} from './interfaces/view';
 
 
+/**
+ * Gets the parent LView of the passed LView, if the PARENT is an LContainer, will get the parent of
+ * that LContainer, which is an LView
+ * @param lView the lView whose parent to get
+ */
+export function getLViewParent(lView: LView): LView|null {
+  ngDevMode && assertLView(lView, true);
+  const parent = lView[PARENT];
+  return isLContainer(parent) ? parent[PARENT] ! : parent;
+}
+
+/**
+ * Returns true if the value is an {@link LView}
+ * @param value the value to check
+ */
+export function isLView(value: any): value is LView {
+  return Array.isArray(value) && value.length >= HEADER_OFFSET;
+}
 
 /**
  * Returns whether the values are different from a change detection stand point.
@@ -113,7 +131,9 @@ export function getTNode(index: number, view: LView): TNode {
 export function getComponentViewByIndex(nodeIndex: number, hostView: LView): LView {
   // Could be an LView or an LContainer. If LContainer, unwrap to find LView.
   const slotValue = hostView[nodeIndex];
-  return slotValue.length >= HEADER_OFFSET ? slotValue : slotValue[HOST];
+  const lView = isLView(slotValue) ? slotValue : slotValue[HOST];
+  ngDevMode && assertLView(lView, true);
+  return lView;
 }
 
 export function isContentQueryHost(tNode: TNode): boolean {
@@ -279,6 +299,7 @@ export function findComponentView(lView: LView): LView {
     rootTNode = lView[T_HOST];
   }
 
+  ngDevMode && assertLView(lView, true);
   return lView;
 }
 

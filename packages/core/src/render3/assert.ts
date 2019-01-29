@@ -11,6 +11,7 @@ import {assertDefined, assertEqual, throwError} from '../util/assert';
 import {getComponentDef, getNgModuleDef} from './definition';
 import {TNode} from './interfaces/node';
 import {LView} from './interfaces/view';
+import {isLContainer, isLView} from './util';
 
 
 export function assertComponentType(
@@ -43,4 +44,12 @@ export function assertDataNext(lView: LView, index: number, arr?: any[]) {
   if (arr == null) arr = lView;
   assertEqual(
       arr.length, index, `index ${index} expected to be at the end of arr (length ${arr.length})`);
+}
+
+export function assertLContainer(value: any, required = false): void {
+  (required || value) && assertEqual(isLContainer(value), true, 'Expecting LContainer');
+}
+
+export function assertLView(value: any, required = false): void {
+  (required || value) && assertEqual(isLView(value), true, 'Expecting LView');
 }

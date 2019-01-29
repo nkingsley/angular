@@ -13,11 +13,11 @@ import {Type} from '../interface/type';
 import {validateAgainstEventAttributes, validateAgainstEventProperties} from '../sanitization/sanitization';
 import {Sanitizer} from '../sanitization/security';
 import {StyleSanitizeFn} from '../sanitization/style_sanitizer';
-import {assertDataInRange, assertDefined, assertEqual, assertLessThan, assertNotEqual} from '../util/assert';
+import {assertDataInRange, assertDefined, assertDomNode, assertEqual, assertLessThan, assertNotEqual} from '../util/assert';
 import {isObservable} from '../util/lang';
 import {normalizeDebugBindingName, normalizeDebugBindingValue} from '../util/ng_reflect';
 
-import {assertHasParent, assertPreviousIsParent} from './assert';
+import {assertHasParent, assertLContainer, assertLView, assertPreviousIsParent} from './assert';
 import {bindingUpdated, bindingUpdated2, bindingUpdated3, bindingUpdated4} from './bindings';
 import {attachPatchData, getComponentViewByInstance} from './context_discovery';
 import {diPublicInInjector, getNodeInjectable, getOrCreateInjectable, getOrCreateNodeInjectorForNode, injectAttributeImpl} from './di';
@@ -32,6 +32,7 @@ import {CssSelectorList, NG_PROJECT_AS_ATTR_NAME} from './interfaces/projection'
 import {LQueries} from './interfaces/query';
 import {GlobalTargetResolver, ProceduralRenderer3, RComment, RElement, RText, Renderer3, RendererFactory3, isProceduralRenderer} from './interfaces/renderer';
 import {SanitizerFn} from './interfaces/sanitization';
+import {StylingContext} from './interfaces/styling';
 import {BINDING_INDEX, CHILD_HEAD, CHILD_TAIL, CLEANUP, CONTEXT, DECLARATION_VIEW, FLAGS, HEADER_OFFSET, HOST, INJECTOR, InitPhaseState, LView, LViewFlags, NEXT, OpaqueViewState, PARENT, QUERIES, RENDERER, RENDERER_FACTORY, RootContext, RootContextFlags, SANITIZER, TData, TVIEW, TView, T_HOST} from './interfaces/view';
 import {assertNodeOfPossibleTypes, assertNodeType} from './node_assert';
 import {appendChild, appendProjectedNode, createTextNode, insertView, removeView} from './node_manipulation';
@@ -41,7 +42,7 @@ import {getInitialClassNameValue, getInitialStyleStringValue, initializeStaticCo
 import {BoundPlayerFactory} from './styling/player_factory';
 import {ANIMATION_PROP_PREFIX, allocateDirectiveIntoContext, createEmptyStylingContext, forceClassesAsString, forceStylesAsString, getStylingContext, hasClassInput, hasStyleInput, hasStyling, isAnimationProp} from './styling/util';
 import {NO_CHANGE} from './tokens';
-import {INTERPOLATION_DELIMITER, findComponentView, getComponentViewByIndex, getNativeByIndex, getNativeByTNode, getRootContext, getRootView, getTNode, isComponent, isComponentDef, isContentQueryHost, isRootView, loadInternal, readElementValue, readPatchedLView, renderStringify} from './util';
+import {INTERPOLATION_DELIMITER, findComponentView, getComponentViewByIndex, getLViewParent, getNativeByIndex, getNativeByTNode, getRootContext, getRootView, getTNode, isComponent, isComponentDef, isContentQueryHost, isRootView, loadInternal, readElementValue, readPatchedLView, renderStringify} from './util';
 
 
 
@@ -2156,8 +2157,10 @@ function generateInitialInputs(
  * @returns LContainer
  */
 export function createLContainer(
-    hostNative: RElement | RComment, currentView: LView, native: RComment,
+    hostNative: RElement | RComment | StylingContext | LView, currentView: LView, native: RComment,
     isForViewContainerRef?: boolean): LContainer {
+  ngDevMode && assertDomNode(native);
+  ngDevMode && assertLView(currentView, true);
   return [
     isForViewContainerRef ? -1 : 0,  // active index
     [],                              // views
@@ -2450,7 +2453,9 @@ export function embeddedViewEnd(): void {
     lView[FLAGS] &= ~LViewFlags.CreationMode;
   }
   refreshDescendantViews(lView);  // update mode pass
-  leaveView(lView[PARENT] !as LView);
+  const lContainer = lView[PARENT] as LContainer;
+  ngDevMode && assertLContainer(lContainer);
+  leaveView(lContainer[PARENT] !);
   setPreviousOrParentTNode(viewHost !);
   setIsParent(false);
 }
@@ -2596,7 +2601,7 @@ export function projection(nodeIndex: number, selectorIndex: number = 0, attrs?:
   const componentView = findComponentView(lView);
   const componentNode = componentView[T_HOST] as TElementNode;
   let nodeToProject = (componentNode.projection as(TNode | null)[])[selectorIndex];
-  let projectedView = componentView[PARENT] !as LView;
+  let projectedView = getLViewParent(componentView) !;
   let projectionNodeIndex = -1;
 
   if (Array.isArray(nodeToProject)) {
@@ -2618,7 +2623,7 @@ export function projection(nodeIndex: number, selectorIndex: number = 0, attrs?:
             projectionNodeStack[++projectionNodeIndex] = projectedView;
 
             nodeToProject = firstProjectedNode;
-            projectedView = currentComponentView[PARENT] !as LView;
+            projectedView = getLViewParent(currentComponentView) !;
             continue;
           }
         }
@@ -2670,6 +2675,7 @@ export function addToViewTree<T extends LView|LContainer>(lView: LView, lViewOrL
 
 /** If node is an OnPush component, marks its LView dirty. */
 function markDirtyIfOnPush(lView: LView, viewIndex: number): void {
+  ngDevMode && assertLView(lView, true);
   const childComponentLView = getComponentViewByIndex(viewIndex, lView);
   if (!(childComponentLView[FLAGS] & LViewFlags.CheckAlways)) {
     childComponentLView[FLAGS] |= LViewFlags.Dirty;
@@ -2729,12 +2735,15 @@ function wrapListener(
 export function markViewDirty(lView: LView): LView|null {
   while (lView) {
     lView[FLAGS] |= LViewFlags.Dirty;
+    const parent = getLViewParent(lView);
     // Stop traversing up as soon as you find a root view that wasn't attached to any container
-    if (isRootView(lView) && !lView[PARENT]) {
+    if (isRootView(lView) && parent) {
       return lView;
+    } else {
+      ngDevMode && assertLView(parent);
+      // continue otherwise
+      lView = parent !;
     }
-    // continue otherwise
-    lView = lView[PARENT] !as LView;
   }
   return null;
 }
