@@ -18,8 +18,6 @@ import {TContainerNode, TElementNode, TNode, TNodeFlags, TNodeType} from './inte
 import {RComment, RElement, RText} from './interfaces/renderer';
 import {CONTEXT, DECLARATION_VIEW, FLAGS, HEADER_OFFSET, HOST, LView, LViewFlags, PARENT, RootContext, TData, TVIEW, T_HOST} from './interfaces/view';
 
-
-
 /**
  * Gets the parent LView of the passed LView, if the PARENT is an LContainer, will get the parent of
  * that LContainer, which is an LView

@@ -11,6 +11,7 @@ import {Injector} from '../di/injector';
 import {assertLView} from './assert';
 import {discoverLocalRefs, getComponentAtNodeIndex, getDirectivesAtNodeIndex, getLContext} from './context_discovery';
 import {NodeInjector} from './di';
+import {LContainer} from './interfaces/container';
 import {LContext} from './interfaces/context';
 import {DirectiveDef} from './interfaces/definition';
 import {TElementNode, TNode, TNodeProviderIndexes} from './interfaces/node';
