@@ -8,39 +8,20 @@
 
 import {assertDefined, assertDomNode, assertEqual} from '../util/assert';
 
+import {assertLContainer, assertLView} from './assert';
 import {getLContext} from './context_discovery';
-import {createLContainer, createLView, renderEmbeddedTemplate} from './instructions';
-import {ACTIVE_INDEX, LContainer} from './interfaces/container';
+import {appendChildViewDynamic, createLContainer, createLView, renderEmbeddedTemplate} from './instructions';
+import {ACTIVE_INDEX, LContainer, VIEWS} from './interfaces/container';
 import {TNode} from './interfaces/node';
-import {RComment, RElement, RNode} from './interfaces/renderer';
-import {DECLARATION_VIEW, EmbeddedViewFactory, FLAGS, HEADER_OFFSET, HOST, LView, LViewFlags, PARENT, QUERIES, RENDERER, TVIEW, View, ViewContainer} from './interfaces/view';
+import {RNode} from './interfaces/renderer';
+import {DECLARATION_VIEW, EmbeddedViewFactory, HOST, LView, LViewFlags, QUERIES, RENDERER, TVIEW, View, ViewContainer} from './interfaces/view';
 import {insertView, nativeInsertBefore} from './node_manipulation';
 import {getIsParent, setIsParent, setPreviousOrParentTNode} from './state';
-import {getLContainer as readLContainer, getLastRootElementFromView, readElementValue} from './util';
-
-
-
-/*
-test case:
-
-Consider a template like:
-
-<div/>
-<ng-template #foo>content here</ng-template>
-
-... should be
-
-<div/>
-<!-- content -->
-
-1. grab div and convert into ViewContainer
-2. grab content comment and convert into ViewFactory
-3. Should Instantiate view from the view factory
-4. Should be able to add the view to the view container (not implemented yet)
-*/
+import {getLContainer as readLContainer, getLastRootElementFromView, isLContainer, isLView, readElementValue} from './util';
 
 /**
- *
+ * Gets the factory for a view based on a passed DOM node.
+ * @param node The DOM node to get the view factory for
  */
 export function getEmbeddedViewFactory<T extends{}>(node: RNode): EmbeddedViewFactory<T>|null {
   ngDevMode && assertDomNode(node);
@@ -60,13 +41,10 @@ export function getEmbeddedViewFactory<T extends{}>(node: RNode): EmbeddedViewFa
           setIsParent(true);
           setPreviousOrParentTNode(null !);
 
-          const lView =
-              createLView(declarationLView, templateTView, context, LViewFlags.CheckAlways);
+          const lView = createLView(
+              declarationLView, templateTView, context, LViewFlags.CheckAlways, null, null);
           lView[DECLARATION_VIEW] = declarationLView;
 
-          createViewNode(-1, lView);
-
-          // TODO(benlesh): confirm with Misko that this is the proper TView to check.
           if (declarationTView.firstTemplatePass) {
             declarationTView.node !.injectorIndex = declrationTNode.injectorIndex;
           }
@@ -96,54 +74,79 @@ export function getHostView(node: RNode): View<never>|null {
 
 
 /**
- *
+ * Gets the {@link ViewContainer} for the given DOM node, if there is a view container, otherwise it
+ * returns `null`.
+ * @param node The DOM node to get the view container for
  */
-export function getViewContainer<T extends{} = {}>(node: RNode): ViewContainer|null {
+export function getViewContainer(node: RNode): ViewContainer|null {
   ngDevMode && assertDomNode(node);
+  return getViewContainerInternal(node) as ViewContainer | null;
+}
+
+function getViewContainerInternal(node: RNode): LContainer|null {
   const lContext = getLContext(node);
   let lContainer: LContainer|null = null;
   if (lContext) {
     const lView = lContext.lView;
     const nodeIndex = lContext.nodeIndex;
-    const lViewContainerOrElement: LContainer|RNode = lView[nodeIndex];
+    const lViewContainerOrElement: LView|LContainer|RNode = lView[nodeIndex];
     lContainer = readLContainer(lViewContainerOrElement);
     if (!lContainer) {
-      lContainer = lView[nodeIndex] = createLContainer(
-          lViewContainerOrElement as RElement | RComment, lView,
-          lViewContainerOrElement as RComment, true);
-      addToViewTree(lView, lContainer);
+      const element = readElementValue(lViewContainerOrElement);
+      lContainer = lView[nodeIndex] = createLContainer(element, lView, element as any, true);
+      appendChildViewDynamic(lView, lContainer);
     }
   }
-  return lContainer as ViewContainer | null;
+  return lContainer;
 }
 
-
 /**
- * TODO
+ * Inserts a {@link View} in a {@link ViewContainer} after a specified {@link View} reference
+ * (`insertAfter`). If `insertAfter` is `null`, then we append the view as the last view in the
+ * container.
+ * @param viewContainer The container to add insert the `view` in
+ * @param view The view to insert in the container
+ * @param insertAfter The view reference to insert the `view` after, if `insertAfter` is `null`,
+ * `view` is then appended as the last view.
  */
 export function viewContainerInsertAfter(
     viewContainer: ViewContainer, view: View, insertAfter: View | null): void {
-  // TODO(benlesh): refactor these functions to have internal versions.
-  // TODO(benlesh): add assertions for the arguments, ensure they're the right type.
-  const lContainer = viewContainer as any as LContainer;
-  const lView = view as any as LView;
+  ngDevMode && assertLContainer(viewContainer);
+  ngDevMode && assertLView(view);
+  ngDevMode && assertLView(insertAfter);
+
+  return viewContainerInsertAfterInternal(viewContainer as any, view as any, insertAfter as any);
+}
+
+function viewContainerInsertAfterInternal(
+    lContainer: LContainer, lView: LView, insertAfterLView: LView | null) {
   const containerNode = readElementValue(lContainer[HOST]);
-  // const node = readElementValue(lView[HOST]);
   const insertAfterNode =
-      insertAfter ? getLastRootElementFromView(insertAfter as any as LView) : containerNode;
+      insertAfterLView ? getLastRootElementFromView(insertAfterLView !) : containerNode;
   const tView = lView[TVIEW];
   let tNode = tView.firstChild;
   ngDevMode && assertDefined(tNode, 'View has no nodes');
 
-  insertView(lView, lContainer, lContainer[ACTIVE_INDEX]);
+  const index =
+      insertAfterLView ? getViewIndex(lContainer, insertAfterLView) + 1 : lContainer[ACTIVE_INDEX];
+  insertView(lView, lContainer, index);
 
-  debugger;
   const referenceNode = insertAfterNode.nextSibling;
   while (tNode) {
     const node = lView[tNode.index];
     nativeInsertBefore(lView[RENDERER], containerNode.parentElement !, node, referenceNode);
     tNode = tNode.next;
   }
+}
+
+function getViewIndex(lContainer: LContainer, lView: LView) {
+  const views = lContainer[VIEWS] as LView[];
+  if (views) {
+    for (let i = 0; i < views.length; i++) {
+      if (lView === views[i]) return i;
+    }
+  }
+  return -1;
 }
 
 /**

@@ -17,7 +17,7 @@ import {assertDataInRange, assertDefined, assertDomNode, assertEqual, assertLess
 import {isObservable} from '../util/lang';
 import {normalizeDebugBindingName, normalizeDebugBindingValue} from '../util/ng_reflect';
 
-import {assertHasParent, assertLContainerOrUndefined, assertLView, assertPreviousIsParent} from './assert';
+import {assertHasParent, assertLContainer, assertLContainerOrUndefined, assertLView, assertPreviousIsParent} from './assert';
 import {bindingUpdated, bindingUpdated2, bindingUpdated3, bindingUpdated4} from './bindings';
 import {attachPatchData, getComponentViewByInstance} from './context_discovery';
 import {diPublicInInjector, getNodeInjectable, getOrCreateInjectable, getOrCreateNodeInjectorForNode, injectAttributeImpl} from './di';
@@ -42,7 +42,7 @@ import {getInitialClassNameValue, getInitialStyleStringValue, initializeStaticCo
 import {BoundPlayerFactory} from './styling/player_factory';
 import {ANIMATION_PROP_PREFIX, allocateDirectiveIntoContext, createEmptyStylingContext, forceClassesAsString, forceStylesAsString, getStylingContext, hasClassInput, hasStyleInput, hasStyling, isAnimationProp} from './styling/util';
 import {NO_CHANGE} from './tokens';
-import {INTERPOLATION_DELIMITER, findComponentView, getComponentViewByIndex, getLViewParent, getNativeByIndex, getNativeByTNode, getRootContext, getRootView, getTNode, isComponent, isComponentDef, isContentQueryHost, isLContainer, isRootView, loadInternal, readElementValue, readPatchedLView, renderStringify} from './util';
+import {INTERPOLATION_DELIMITER, findComponentView, getComponentViewByIndex, getLViewParent, getNativeByIndex, getNativeByTNode, getRootContext, getRootView, getTNode, isComponent, isComponentDef, isContentQueryHost, isLContainer, isLView, isRootView, loadInternal, readElementValue, readPatchedLView, renderStringify} from './util';
 
 
 
@@ -2046,7 +2046,7 @@ function addComponentLogic<T>(
   // Only component views should be added to the view tree directly. Embedded views are
   // accessed through their containers because they may be removed / re-added later.
   const rendererFactory = lView[RENDERER_FACTORY];
-  const componentView = addToViewTree(
+  const componentView = appendChildView(
       lView, createLView(
                  lView, tView, null, def.onPush ? LViewFlags.Dirty : LViewFlags.CheckAlways,
                  lView[previousOrParentTNode.index], previousOrParentTNode as TElementNode,
@@ -2246,7 +2246,7 @@ function containerInternal(
 
   // Containers are added to the current view tree instead of their embedded views
   // because views can be removed and re-inserted.
-  addToViewTree(lView, lContainer);
+  appendChildView(lView, lContainer);
 
   ngDevMode && assertNodeType(getPreviousOrParentTNode(), TNodeType.Container);
   return tNode;
@@ -2325,9 +2325,8 @@ export function containerRefreshEnd(): void {
 function refreshDynamicEmbeddedViews(lView: LView) {
   let current = lView[CHILD_HEAD];
   while (current) {
-    // Note: current can be an LView or an LContainer instance, but here we are only interested
-    // in LContainer. We can tell it's an LContainer because its length is less than the LView
-    // header.
+    // Note: current can be an LView or an LContainer instance, but here we are only interested in
+    // LContainer
     if (isLContainer(current) && current[ACTIVE_INDEX] === -1) {
       const views = current[VIEWS];
       for (let i = 0; i < views.length; i++) {
@@ -2649,27 +2648,70 @@ export function projection(nodeIndex: number, selectorIndex: number = 0, attrs?:
 }
 
 /**
+ * Adds an LContainer as a child to an LView in the dynamic case, where the
+ * view may be added at any point in the DOM tree. This assures that the linked
+ * list of LViews is in the same order as they appear in the DOM, depth first.
+ * @param parentLView the LView to add the child container to
+ * @param lContainerToAdd The container to add to the parent
+ */
+export function appendChildViewDynamic(parentLView: LView, lContainerToAdd: LContainer): void {
+  ngDevMode && assertLView(parentLView);
+  ngDevMode && assertLContainer(lContainerToAdd);
+
+  const anchorElement = lContainerToAdd[HOST];
+  const tView = parentLView[TVIEW];
+
+  const constsEnd = tView.bindingStartIndex;
+  let lastLContainerOrLView: LContainer|LView|null = null;
+
+  for (let i = HEADER_OFFSET; i < constsEnd; i++) {
+    let item = parentLView[i];
+    if (readElementValue(item) === anchorElement) {
+      if (!lastLContainerOrLView) {
+        // HEAD
+        if ((lContainerToAdd[NEXT] = parentLView[CHILD_HEAD]) === null) {
+          parentLView[CHILD_TAIL] = lContainerToAdd;
+        }
+        parentLView[CHILD_HEAD] = lContainerToAdd;
+        return;
+      } else if (!lastLContainerOrLView[NEXT]) {
+        // TAIL
+        lastLContainerOrLView[NEXT] = lContainerToAdd;
+        parentLView[CHILD_TAIL] = lContainerToAdd;
+        return;
+      } else {
+        // Middle
+        const _next = lastLContainerOrLView[NEXT];
+        lastLContainerOrLView[NEXT] = lContainerToAdd;
+        lContainerToAdd[NEXT] = _next;
+        return;
+      }
+    } else if (isLContainer(item) || isLView(item)) {
+      lastLContainerOrLView = item;
+    }
+  }
+}
+
+/**
  * Adds LView or LContainer to the end of the current view tree.
  *
  * This structure will be used to traverse through nested views to remove listeners
  * and call onDestroy callbacks.
  *
- * @param lView The view where LView or LContainer should be added
+ * @param parentLView The view where LView or LContainer should be added
  * @param adjustedHostIndex Index of the view's host node in LView[], adjusted for header
- * @param lViewOrLContainer The LView or LContainer to add to the view tree
+ * @param lViewOrLContainerToAdd The LView or LContainer to add to the view tree
  * @returns The state passed in
  */
-export function addToViewTree<T extends LView|LContainer>(lView: LView, lViewOrLContainer: T): T {
-  // TODO(benlesh/misko): This implementation is incorrect, because it always adds the LContainer to
-  // the end of the queue, which means if the developer asks for the LContainers out of order, the
-  // change detection will run out of order.
-  if (lView[CHILD_HEAD]) {
-    lView[CHILD_TAIL] ![NEXT] = lViewOrLContainer;
+export function appendChildView<T extends LView|LContainer>(
+    parentLView: LView, lViewOrLContainerToAdd: T): T {
+  if (parentLView[CHILD_HEAD]) {
+    parentLView[CHILD_TAIL] ![NEXT] = lViewOrLContainerToAdd;
   } else {
-    lView[CHILD_HEAD] = lViewOrLContainer;
+    parentLView[CHILD_HEAD] = lViewOrLContainerToAdd;
   }
-  lView[CHILD_TAIL] = lViewOrLContainer;
-  return lViewOrLContainer;
+  parentLView[CHILD_TAIL] = lViewOrLContainerToAdd;
+  return lViewOrLContainerToAdd;
 }
 
 ///////////////////////////////

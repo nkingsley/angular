@@ -18,7 +18,7 @@ import {Renderer2} from '../render/api';
 import {assertDefined, assertGreaterThan, assertLessThan} from '../util/assert';
 
 import {NodeInjector, getParentInjectorLocation} from './di';
-import {addToViewTree, createEmbeddedViewAndNode, createLContainer, renderEmbeddedTemplate} from './instructions';
+import {appendChildView, createEmbeddedViewAndNode, createLContainer, renderEmbeddedTemplate} from './instructions';
 import {ACTIVE_INDEX, LContainer, NATIVE, VIEWS} from './interfaces/container';
 import {TContainerNode, TElementContainerNode, TElementNode, TNode, TNodeType, TViewNode} from './interfaces/node';
 import {RComment, RElement, isProceduralRenderer} from './interfaces/renderer';
@@ -314,7 +314,7 @@ export function createContainerRef(
     hostView[hostTNode.index] = lContainer =
         createLContainer(slotValue, hostView, commentNode, true);
 
-    addToViewTree(hostView, lContainer);
+    appendChildView(hostView, lContainer);
   }
 
   return new R3ViewContainerRef(lContainer, hostTNode, hostView);

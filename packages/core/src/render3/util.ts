@@ -133,7 +133,7 @@ export function getLastRootElementFromView(lView: LView): RNode {
  * TODO: comment
  * @param value
  */
-export function getLContainer(value: LContainer | RNode | StylingContext): LContainer|null {
+export function getLContainer(value: LView | LContainer | RNode | StylingContext): LContainer|null {
   while (Array.isArray(value)) {
     value = value[HOST] as any;
     if (isLContainer(value)) {

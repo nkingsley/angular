@@ -504,6 +504,8 @@ function executeOnDestroys(view: LView): void {
  *   into destination.
  */
 function getRenderParent(tNode: TNode, currentView: LView): RElement|null {
+  ngDevMode && assertLView(currentView);
+
   // Nodes of the top-most view can be inserted eagerly.
   if (isRootView(currentView)) {
     return nativeParentNode(currentView[RENDERER], getNativeByTNode(tNode, currentView));
@@ -517,6 +519,11 @@ function getRenderParent(tNode: TNode, currentView: LView): RElement|null {
   // component view.
   if (parent == null) {
     const hostTNode = currentView[T_HOST] !;
+    if (!hostTNode) {
+      // TODO(benlesh/misko): Verify that returning null is the correct behavior
+      return null;
+    }
+
     if (hostTNode.type === TNodeType.View) {
       // We are inserting a root element of an embedded view We might delay insertion of children
       // for a given view if it is disconnected. This might happen for 2 main reasons:
