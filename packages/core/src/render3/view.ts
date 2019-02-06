@@ -10,14 +10,16 @@ import {assertDefined, assertDomNode, assertEqual} from '../util/assert';
 
 import {assertLContainer, assertLView} from './assert';
 import {getLContext} from './context_discovery';
-import {appendChildViewDynamic, createLContainer, createLView, renderEmbeddedTemplate} from './instructions';
+import {appendChildViewDynamic, assignTViewNodeToLView, createLContainer, createLView, renderEmbeddedTemplate} from './instructions';
 import {ACTIVE_INDEX, LContainer, VIEWS} from './interfaces/container';
-import {TNode} from './interfaces/node';
-import {RNode} from './interfaces/renderer';
-import {DECLARATION_VIEW, EmbeddedViewFactory, HOST, LView, LViewFlags, QUERIES, RENDERER, TVIEW, View, ViewContainer} from './interfaces/view';
-import {insertView, nativeInsertBefore} from './node_manipulation';
+import {TContainerNode, TElementNode, TNode} from './interfaces/node';
+import {RComment, RNode} from './interfaces/renderer';
+import {DECLARATION_VIEW, EmbeddedViewFactory, HOST, HOST_NODE, LView, LViewFlags, PARENT, QUERIES, RENDERER, TVIEW, View, ViewContainer} from './interfaces/view';
+import {destroyLView, detachView, insertView, nativeInsertBefore, nativeParentNode, nativeRemoveChild, removeChild, removeView} from './node_manipulation';
 import {getIsParent, setIsParent, setPreviousOrParentTNode} from './state';
-import {getLContainer as readLContainer, getLastRootElementFromView, isLContainer, isLView, readElementValue} from './util';
+import {getLContainer as readLContainer, getLastRootElementFromView, getRNode, isLContainer, isLView, readElementValue} from './util';
+
+
 
 /**
  * Gets the factory for a view based on a passed DOM node.
@@ -29,8 +31,8 @@ export function getEmbeddedViewFactory<T extends{}>(node: RNode): EmbeddedViewFa
   if (lContext) {
     const declarationLView = lContext.lView;
     const declarationTView = declarationLView[TVIEW];
-    const declrationTNode = declarationTView.data[lContext.nodeIndex] as TNode;
-    const templateTView = declrationTNode.tViews;
+    const declarationTNode = declarationTView.data[lContext.nodeIndex] as TNode;
+    const templateTView = declarationTNode.tViews;
     if (templateTView) {
       if (Array.isArray(templateTView)) {
         ngDevMode &&
@@ -46,7 +48,7 @@ export function getEmbeddedViewFactory<T extends{}>(node: RNode): EmbeddedViewFa
           lView[DECLARATION_VIEW] = declarationLView;
 
           if (declarationTView.firstTemplatePass) {
-            declarationTView.node !.injectorIndex = declrationTNode.injectorIndex;
+            declarationTView.node !.injectorIndex = declarationTNode.injectorIndex;
           }
 
           const queries = declarationLView[QUERIES];
@@ -131,6 +133,8 @@ function viewContainerInsertAfterInternal(
       insertAfterLView ? getViewIndex(lContainer, insertAfterLView) + 1 : lContainer[ACTIVE_INDEX];
   insertView(lView, lContainer, index);
 
+  assignTViewNodeToLView(tView, null, -1, lView);
+
   const referenceNode = insertAfterNode.nextSibling;
   while (tNode) {
     const node = lView[tNode.index];
@@ -150,17 +154,41 @@ function getViewIndex(lContainer: LContainer, lView: LView) {
 }
 
 /**
- *
- */
-export function viewContainerAppend(viewContainer: ViewContainer, view: View): void {
-  return null !;
-}
-
-/**
- *
+ * Used to remove (embedded) views from a container. Will detach the view and destroy it, and will
+ * also remove all DOM nodes associated with the view.
+ * @param viewContainer The container to remove the view from
+ * @param view The view to remove from the container
  */
 export function viewContainerRemove(viewContainer: ViewContainer, view: View): void {
-  return null !;
+  ngDevMode && assertLContainer(viewContainer, true);
+  ngDevMode && assertLView(view, true);
+  viewContainerRemoveInternal(viewContainer as any, view as any);
+}
+
+function viewContainerRemoveInternal(lContainer: LContainer, lView: LView): void {
+  const containerParentLView = lContainer[PARENT] !as LView;
+  ngDevMode && assertLView(containerParentLView, true);
+  const views = lContainer[VIEWS];
+  for (let i = 0; i < views.length; i++) {
+    const containedLView = views[i];
+    if (containedLView === lView) {
+      // TODO(benlesh): Intentionally not using `removeView` until after Misko's PR lands, because
+      // it's really weird.
+      detachView(lContainer, i, false);
+      destroyLView(containedLView);
+      const tView = lView[TVIEW];
+      let tNode = tView.firstChild;
+      const renderer = lView[RENDERER];
+      while (tNode) {
+        const rNode = getRNode(lView, tNode.index);
+        const parentRElement = nativeParentNode(renderer, rNode);
+        if (parentRElement) {
+          nativeRemoveChild(renderer, parentRElement, rNode);
+        }
+        tNode = tNode.next;
+      }
+    }
+  }
 }
 
 /**

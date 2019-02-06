@@ -376,28 +376,28 @@ export function createEmbeddedViewAndNode<T>(
  * can't store TViews in the template function itself (as we do for comps). Instead, we store the
  * TView for dynamically created views on their host TNode, which only has one instance.
  */
-export function renderEmbeddedTemplate<T>(viewToRender: LView, tView: TView, context: T) {
+export function renderEmbeddedTemplate<T>(lViewToRender: LView, tView: TView, context: T) {
   const _isParent = getIsParent();
   const _previousOrParentTNode = getPreviousOrParentTNode();
   let oldView: LView;
-  if (viewToRender[FLAGS] & LViewFlags.IsRoot) {
+  if (lViewToRender[FLAGS] & LViewFlags.IsRoot) {
     // This is a root view inside the view tree
-    tickRootContext(getRootContext(viewToRender));
+    tickRootContext(getRootContext(lViewToRender));
   } else {
     try {
       setIsParent(true);
       setPreviousOrParentTNode(null !);
 
-      oldView = enterView(viewToRender, viewToRender[T_HOST]);
+      oldView = enterView(lViewToRender, lViewToRender[T_HOST]);
       namespaceHTML();
-      tView.template !(getRenderFlags(viewToRender), context);
+      tView.template !(getRenderFlags(lViewToRender), context);
       // This must be set to false immediately after the first creation run because in an
       // ngFor loop, all the views will be created together before update mode runs and turns
       // off firstTemplatePass. If we don't set it here, instances will perform directive
       // matching, etc again and again.
-      viewToRender[TVIEW].firstTemplatePass = false;
+      lViewToRender[TVIEW].firstTemplatePass = false;
 
-      refreshDescendantViews(viewToRender);
+      refreshDescendantViews(lViewToRender);
     } finally {
       leaveView(oldView !);
       setIsParent(_isParent);

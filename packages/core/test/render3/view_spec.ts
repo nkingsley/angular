@@ -8,11 +8,12 @@
 
 import {TemplateFixture} from './render_util';
 import {template, element, RenderFlags, elementEnd, elementStart, text, textBinding, bind} from '@angular/core/src/render3';
-import {getEmbeddedViewFactory, viewContainerInsertAfter, getViewContainer} from '@angular/core/src/render3/view';
+import {getEmbeddedViewFactory, viewContainerInsertAfter, getViewContainer, viewContainerRemove, viewContainerGet} from '@angular/core/src/render3/view';
 import {CHILD_HEAD, NEXT, CHILD_TAIL} from '@angular/core/src/render3/interfaces/view';
+import {VIEWS} from '@angular/core/src/render3/interfaces/container';
 
 
-describe('getEmbeddedViewFactory', () => {
+describe('view manipulation commands', () => {
   it('should get the embedded view from a comment added by ng-template', () => {
 
     const log: any[] = [];
@@ -91,11 +92,11 @@ describe('getEmbeddedViewFactory', () => {
        const four = fixture.hostElement.querySelector('four') !;
 
        // This is adding to the CHILD_HEAD and CHILD_TAIL
-       const middle2Container = getViewContainer(three);
+       const threeContainer = getViewContainer(three);
        // This is inserting to CHILD_HEAD infront of existing CHILD_HEAD
        const oneContainer = getViewContainer(one);
        // This is inserting at CHILD_TAIL, after existing CHILD_TAIL
-       const lastContainer = getViewContainer(four);
+       const fourContainer = getViewContainer(four);
        // This is inserting in the middle of the list
        const twoContainer = getViewContainer(two);
 
@@ -107,10 +108,10 @@ describe('getEmbeddedViewFactory', () => {
        expect(cursor).toBe(twoContainer as any);
 
        cursor = cursor ![NEXT];
-       expect(cursor).toBe(middle2Container as any);
+       expect(cursor).toBe(threeContainer as any);
 
        cursor = cursor ![NEXT];
-       expect(cursor).toBe(lastContainer as any);
+       expect(cursor).toBe(fourContainer as any);
 
        expect(fixture.hostView[CHILD_TAIL]).toBe(cursor);
        expect(cursor ![NEXT]).toEqual(null);
@@ -155,11 +156,11 @@ describe('getEmbeddedViewFactory', () => {
        const four = fixture.hostElement.querySelector('four') !;
 
        // This is adding to the CHILD_HEAD and CHILD_TAIL
-       const middle2Container = getViewContainer(three);
+       const threeContainer = getViewContainer(three);
        // This is inserting to CHILD_HEAD infront of existing CHILD_HEAD
        const oneContainer = getViewContainer(one);
        // This is inserting at CHILD_TAIL, after existing CHILD_TAIL
-       const lastContainer = getViewContainer(four);
+       const fourContainer = getViewContainer(four);
        // This is inserting in the middle of the list
        const twoContainer = getViewContainer(two);
 
@@ -171,12 +172,46 @@ describe('getEmbeddedViewFactory', () => {
        expect(cursor).toBe(twoContainer as any);
 
        cursor = cursor ![NEXT];
-       expect(cursor).toBe(middle2Container as any);
+       expect(cursor).toBe(threeContainer as any);
 
        cursor = cursor ![NEXT];
-       expect(cursor).toBe(lastContainer as any);
+       expect(cursor).toBe(fourContainer as any);
 
        expect(fixture.hostView[CHILD_TAIL]).toBe(cursor);
        expect(cursor ![NEXT]).toEqual(null);
      });
+
+  describe('viewContainerRemove', () => {
+    it('should remove views from a container', () => {
+      /*
+       <one/>
+       <two/>
+       <three/>
+       <four/>
+      */
+      const fixture = new TemplateFixture(
+          () => {
+            element(0, 'div');
+            template(1, (rf: RenderFlags, ctx: any) => {
+              if (rf & RenderFlags.Create) {
+                element(0, 'span');
+              }
+            }, 1, 0);
+          },
+          () => {
+
+          },
+          4, 0);
+
+      const comment = fixture.hostElement.lastChild !;
+      const embeddedViewFactory = getEmbeddedViewFactory(comment) !;
+      const view = embeddedViewFactory({foo: 'bar'});
+      const container = getViewContainer(comment) !;
+      viewContainerInsertAfter(container, view, null);
+      expect(fixture.htmlWithContainerComments).toEqual('<div></div><!--container--><span></span>');
+      viewContainerRemove(container, view);
+      expect(fixture.htmlWithContainerComments).toEqual('<div></div><!--container-->');
+
+    });
+  });
 });

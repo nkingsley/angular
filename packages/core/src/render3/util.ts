@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {assertDataInRange, assertDefined, assertGreaterThan, assertLessThan} from '../util/assert';
+import {assertDataInRange, assertDefined, assertGreaterOrEqual, assertGreaterThan, assertLessThan} from '../util/assert';
 import {global} from '../util/global';
 
 import {assertLView} from './assert';
@@ -111,6 +111,13 @@ export function readElementValue(value: any): RElement {
     value = value[HOST] as any;
   }
   return value;
+}
+
+export function getRNode(lView: LView, index: number): RNode {
+  ngDevMode && assertLView(lView, true);
+  ngDevMode && assertGreaterOrEqual(index, HEADER_OFFSET, 'index must be past the HEADER_OFFSET');
+
+  return readElementValue(lView[index]);
 }
 
 /**
