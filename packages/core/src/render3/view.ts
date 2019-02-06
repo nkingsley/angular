@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {assertDefined, assertDomNode, assertEqual} from '../util/assert';
+import {assertDefined, assertDomNode, assertEqual, assertGreaterOrEqual, assertLessThan} from '../util/assert';
 
 import {assertLContainer, assertLView} from './assert';
 import {getLContext} from './context_discovery';
@@ -129,8 +129,8 @@ function viewContainerInsertAfterInternal(
   let tNode = tView.firstChild;
   ngDevMode && assertDefined(tNode, 'View has no nodes');
 
-  const index =
-      insertAfterLView ? getViewIndex(lContainer, insertAfterLView) + 1 : lContainer[ACTIVE_INDEX];
+  const index = insertAfterLView ? viewContainerIndexOfInternal(lContainer, insertAfterLView) + 1 :
+                                   lContainer[ACTIVE_INDEX];
   insertView(lView, lContainer, index);
 
   assignTViewNodeToLView(tView, null, -1, lView);
@@ -143,7 +143,38 @@ function viewContainerInsertAfterInternal(
   }
 }
 
-function getViewIndex(lContainer: LContainer, lView: LView) {
+/**
+ * Appends the view as the last view in the view container.
+ * @param viewContainer The container to append the view to.
+ * @param view The view to append.
+ */
+export function viewContainerAppend(viewContainer: ViewContainer, view: View): void {
+  ngDevMode && assertLContainer(viewContainer, true);
+  ngDevMode && assertLView(view, true);
+
+  return viewContainerAppendInternal(viewContainer as any, view as any);
+}
+
+function viewContainerAppendInternal(lContainer: LContainer, lView: LView) {
+  const index = viewContainerLengthInternal(lContainer) - 1;
+  const afterLView = index >= 0 ? viewContainerGetInternal(lContainer, index) : null;
+  viewContainerInsertAfterInternal(lContainer, lView, afterLView);
+}
+
+/**
+ * Searches the `viewContainer` for a the first instance of a given `view` and returns its index
+ * within the container, if the `view` is not found, it returns `-1`.
+ * @param viewContainer The container to search
+ * @param view The view to search for
+ */
+export function viewContainerIndexOf(viewContainer: ViewContainer, view: View): number {
+  ngDevMode && assertLContainer(viewContainer, true);
+  ngDevMode && assertLView(view, true);
+
+  return viewContainerIndexOfInternal(viewContainer as any, view as any);
+}
+
+function viewContainerIndexOfInternal(lContainer: LContainer, lView: LView) {
   const views = lContainer[VIEWS] as LView[];
   if (views) {
     for (let i = 0; i < views.length; i++) {
@@ -172,8 +203,6 @@ function viewContainerRemoveInternal(lContainer: LContainer, lView: LView): void
   for (let i = 0; i < views.length; i++) {
     const containedLView = views[i];
     if (containedLView === lView) {
-      // TODO(benlesh): Intentionally not using `removeView` until after Misko's PR lands, because
-      // it's really weird.
       detachView(lContainer, i, false);
       destroyLView(containedLView);
       const tView = lView[TVIEW];
@@ -192,16 +221,35 @@ function viewContainerRemoveInternal(lContainer: LContainer, lView: LView): void
 }
 
 /**
- *
+ * Gets the number of views in the container.
+ * @param viewContainer The view container examine for length.
  */
 export function viewContainerLength(viewContainer: ViewContainer): number {
-  return 0;
+  ngDevMode && assertLContainer(viewContainer, true);
+  return viewContainerLengthInternal(viewContainer as any);
+}
+
+function viewContainerLengthInternal(lContainer: LContainer): number {
+  const views = lContainer[VIEWS];
+  return Array.isArray(views) ? views.length : 0;
 }
 
 /**
- *
+ * Retrieves a view from a container by index.
+ * @param viewContainer The container to get the view from
+ * @param index The index of the view to retrieve within the container.
  */
-export function viewContainerGet<T extends{} = {}>(
-    viewContainer: ViewContainer, index: number): View<T> {
-  return null !;
+export function viewContainerGet(viewContainer: ViewContainer, index: number): View {
+  ngDevMode && assertLContainer(viewContainer, true);
+  ngDevMode && assertGreaterOrEqual(index, 0, 'index must be 0 or higher');
+  ngDevMode && assertLessThan(
+                   index, viewContainerLength(viewContainer),
+                   'index must be less than the length of the container');
+  const lView = viewContainerGetInternal(viewContainer as any, index);
+  ngDevMode && assertLView(lView, true);
+  return lView as any;
+}
+
+function viewContainerGetInternal(lContainer: LContainer, index: number): LView {
+  return lContainer[VIEWS][index];
 }
