@@ -46,10 +46,20 @@ export function assertDataNext(lView: LView, index: number, arr?: any[]) {
       arr.length, index, `index ${index} expected to be at the end of arr (length ${arr.length})`);
 }
 
-export function assertLContainer(value: any, required = false): void {
-  (required || value) && assertEqual(isLContainer(value), true, 'Expecting LContainer');
+export function assertLContainerOrUndefined(value: any): void {
+  value && assertEqual(isLContainer(value), true, 'Expecting LContainer or undefined or null');
 }
 
-export function assertLView(value: any, required = false): void {
-  (required || value) && assertEqual(isLView(value), true, 'Expecting LView');
+export function assertLContainer(value: any): void {
+  assertDefined(value, 'LContainer must be defined');
+  assertEqual(isLContainer(value), true, 'Expecting LContainer');
+}
+
+export function assertLViewOrUndefined(value: any): void {
+  value && assertEqual(isLView(value), true, 'Expecting LView or undefined or null');
+}
+
+export function assertLView(value: any) {
+  assertDefined(value, 'LView must be defined');
+  assertEqual(isLView(value), true, 'Expecting LView');
 }

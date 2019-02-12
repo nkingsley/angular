@@ -8,7 +8,7 @@
 
 import {assertDefined} from '../util/assert';
 
-import {assertLView} from './assert';
+import {assertLViewOrUndefined} from './assert';
 import {executeHooks} from './hooks';
 import {ComponentDef, DirectiveDef} from './interfaces/definition';
 import {TElementNode, TNode, TViewNode} from './interfaces/node';
@@ -144,7 +144,7 @@ export function setPreviousOrParentTNode(tNode: TNode) {
 }
 
 export function setTNodeAndViewData(tNode: TNode, view: LView) {
-  ngDevMode && assertLView(view);
+  ngDevMode && assertLViewOrUndefined(view);
   previousOrParentTNode = tNode;
   lView = view;
 }
@@ -252,7 +252,7 @@ export function setCurrentQueryIndex(value: number): void {
  * @returns the previous state;
  */
 export function enterView(newView: LView, hostTNode: TElementNode | TViewNode | null): LView {
-  ngDevMode && assertLView(newView);
+  ngDevMode && assertLViewOrUndefined(newView);
   const oldView = lView;
   if (newView) {
     const tView = newView[TVIEW];

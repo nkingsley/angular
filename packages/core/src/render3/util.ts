@@ -19,13 +19,14 @@ import {RComment, RElement, RText} from './interfaces/renderer';
 import {CONTEXT, DECLARATION_VIEW, FLAGS, HEADER_OFFSET, HOST, LView, LViewFlags, PARENT, RootContext, TData, TVIEW, T_HOST} from './interfaces/view';
 
 
+
 /**
  * Gets the parent LView of the passed LView, if the PARENT is an LContainer, will get the parent of
  * that LContainer, which is an LView
  * @param lView the lView whose parent to get
  */
 export function getLViewParent(lView: LView): LView|null {
-  ngDevMode && assertLView(lView, true);
+  ngDevMode && assertLView(lView);
   const parent = lView[PARENT];
   return isLContainer(parent) ? parent[PARENT] ! : parent;
 }
@@ -132,7 +133,7 @@ export function getComponentViewByIndex(nodeIndex: number, hostView: LView): LVi
   // Could be an LView or an LContainer. If LContainer, unwrap to find LView.
   const slotValue = hostView[nodeIndex];
   const lView = isLView(slotValue) ? slotValue : slotValue[HOST];
-  ngDevMode && assertLView(lView, true);
+  ngDevMode && assertLView(lView);
   return lView;
 }
 
@@ -158,20 +159,27 @@ export function isRootView(target: LView): boolean {
 }
 
 /**
- * Retrieve the root view from any component by walking the parent `LView` until
+ * Retrieve the root view from any component or `LView` by walking the parent `LView` until
  * reaching the root `LView`.
  *
- * @param component any component
+ * @param componentOrLView any component or `LView`
  */
-export function getRootView(target: LView | {}): LView {
-  ngDevMode && assertDefined(target, 'component');
-  let lView = Array.isArray(target) ? (target as LView) : readPatchedLView(target) !;
+export function getRootView(componentOrLView: LView | {}): LView {
+  ngDevMode && assertDefined(componentOrLView, 'component');
+  let lView = isLView(componentOrLView) ? componentOrLView : readPatchedLView(componentOrLView) !;
   while (lView && !(lView[FLAGS] & LViewFlags.IsRoot)) {
-    lView = lView[PARENT] !as LView;
+    lView = getLViewParent(lView) !;
   }
+  ngDevMode && assertLView(lView);
   return lView;
 }
-
+/**
+ * Returns the `RootContext` instance that is associated with
+ * the application where the target is situated. It does this by walking the parent views until it
+ * gets to the root view, then getting the context off of that.
+ *
+ * @param viewOrComponent the `LView` or component to get the root context for.
+ */
 export function getRootContext(viewOrComponent: LView | {}): RootContext {
   const rootView = getRootView(viewOrComponent);
   ngDevMode &&
@@ -299,7 +307,7 @@ export function findComponentView(lView: LView): LView {
     rootTNode = lView[T_HOST];
   }
 
-  ngDevMode && assertLView(lView, true);
+  ngDevMode && assertLView(lView);
   return lView;
 }
 

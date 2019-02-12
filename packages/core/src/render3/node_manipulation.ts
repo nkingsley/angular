@@ -24,15 +24,16 @@ import {findComponentView, getLViewParent, getNativeByTNode, isComponent, isLCon
 const unusedValueToPlacateAjd = unused1 + unused2 + unused3 + unused4 + unused5;
 
 export function getLContainer(tNode: TViewNode, embeddedView: LView): LContainer|null {
-  ngDevMode && assertLView(embeddedView, true);
+  ngDevMode && assertLView(embeddedView);
+  const container = embeddedView[PARENT] as LContainer;
   if (tNode.index === -1) {
     // This is a dynamically created view inside a dynamic container.
-    const container = embeddedView[PARENT];
+    // The parent isn't an LContainer if the embedded view hasn't been attached yet.
     return isLContainer(container) ? container : null;
   } else {
+    ngDevMode && assertLContainer(container);
     // This is a inline view node (e.g. embeddedViewStart)
-    const parent = embeddedView[PARENT] !;
-    return isLContainer(parent) ? parent : parent[tNode.parent !.index] as LContainer;
+    return container;
   }
 }
 
@@ -255,36 +256,35 @@ export function addRemoveViewFromContainer(
  */
 export function destroyViewTree(rootView: LView): void {
   // If the view has no children, we can clean it up and return early.
-  const rootChildHead = rootView[CHILD_HEAD];
-  if (!rootChildHead) {
+  let lViewOrLContainer = rootView[CHILD_HEAD];
+  if (!lViewOrLContainer) {
     return cleanUpView(rootView);
   }
-  let viewOrContainer: LView|LContainer|null = rootView[CHILD_HEAD];
 
-  while (viewOrContainer) {
+  while (lViewOrLContainer) {
     let next: LView|LContainer|null = null;
 
-    if (viewOrContainer.length >= HEADER_OFFSET) {
+    if (isLView(lViewOrLContainer)) {
       // If LView, traverse down to child.
-      const view = viewOrContainer as LView;
-      if (rootChildHead) next = view[CHILD_HEAD];
+      next = lViewOrLContainer[CHILD_HEAD];
     } else {
+      ngDevMode && assertLContainer(lViewOrLContainer);
       // If container, traverse down to its first LView.
-      const container = viewOrContainer as LContainer;
-      if (container[VIEWS].length) next = container[VIEWS][0];
+      const views = lViewOrLContainer[VIEWS] as LView[];
+      if (views.length > 0) next = views[0];
     }
 
-    if (next == null) {
+    if (!next) {
       // Only clean up view when moving to the side or up, as destroy hooks
       // should be called in order from the bottom up.
-      while (viewOrContainer && !viewOrContainer ![NEXT] && viewOrContainer !== rootView) {
-        cleanUpView(viewOrContainer);
-        viewOrContainer = getParentState(viewOrContainer, rootView);
+      while (lViewOrLContainer && !lViewOrLContainer ![NEXT] && lViewOrLContainer !== rootView) {
+        cleanUpView(lViewOrLContainer);
+        lViewOrLContainer = getParentState(lViewOrLContainer, rootView);
       }
-      cleanUpView(viewOrContainer || rootView);
-      next = viewOrContainer && viewOrContainer ![NEXT];
+      cleanUpView(lViewOrLContainer || rootView);
+      next = lViewOrLContainer && lViewOrLContainer ![NEXT];
     }
-    viewOrContainer = next;
+    lViewOrLContainer = next;
   }
 }
 
@@ -301,8 +301,8 @@ export function destroyViewTree(rootView: LView): void {
  * @param index Which index in the container to insert the child view into
  */
 export function insertView(lView: LView, lContainer: LContainer, index: number) {
-  ngDevMode && assertLView(lView, true);
-  ngDevMode && assertLContainer(lContainer, true);
+  ngDevMode && assertLView(lView);
+  ngDevMode && assertLContainer(lContainer);
   const views = lContainer[VIEWS];
   ngDevMode && assertDefined(views, 'Container must have views');
   if (index > 0) {
@@ -559,7 +559,7 @@ function getRenderParent(tNode: TNode, currentView: LView): RElement|null {
  * a host element.
  */
 function getHostNative(currentView: LView): RElement|null {
-  ngDevMode && assertLView(currentView, true);
+  ngDevMode && assertLView(currentView);
   const hostTNode = currentView[T_HOST];
   return hostTNode && hostTNode.type === TNodeType.Element ?
       (getNativeByTNode(hostTNode, getLViewParent(currentView) !) as RElement) :

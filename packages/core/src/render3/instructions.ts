@@ -17,7 +17,7 @@ import {assertDataInRange, assertDefined, assertDomNode, assertEqual, assertLess
 import {isObservable} from '../util/lang';
 import {normalizeDebugBindingName, normalizeDebugBindingValue} from '../util/ng_reflect';
 
-import {assertHasParent, assertLContainer, assertLView, assertPreviousIsParent} from './assert';
+import {assertHasParent, assertLContainerOrUndefined, assertLView, assertPreviousIsParent} from './assert';
 import {bindingUpdated, bindingUpdated2, bindingUpdated3, bindingUpdated4} from './bindings';
 import {attachPatchData, getComponentViewByInstance} from './context_discovery';
 import {diPublicInInjector, getNodeInjectable, getOrCreateInjectable, getOrCreateNodeInjectorForNode, injectAttributeImpl} from './di';
@@ -2160,7 +2160,7 @@ export function createLContainer(
     hostNative: RElement | RComment | StylingContext | LView, currentView: LView, native: RComment,
     isForViewContainerRef?: boolean): LContainer {
   ngDevMode && assertDomNode(native);
-  ngDevMode && assertLView(currentView, true);
+  ngDevMode && assertLView(currentView);
   return [
     isForViewContainerRef ? -1 : 0,  // active index
     [],                              // views
@@ -2454,7 +2454,7 @@ export function embeddedViewEnd(): void {
   }
   refreshDescendantViews(lView);  // update mode pass
   const lContainer = lView[PARENT] as LContainer;
-  ngDevMode && assertLContainer(lContainer);
+  ngDevMode && assertLContainerOrUndefined(lContainer);
   leaveView(lContainer[PARENT] !);
   setPreviousOrParentTNode(viewHost !);
   setIsParent(false);
@@ -2601,7 +2601,8 @@ export function projection(nodeIndex: number, selectorIndex: number = 0, attrs?:
   const componentView = findComponentView(lView);
   const componentNode = componentView[T_HOST] as TElementNode;
   let nodeToProject = (componentNode.projection as(TNode | null)[])[selectorIndex];
-  let projectedView = getLViewParent(componentView) !;
+  let projectedView = componentView[PARENT] !as LView;
+  ngDevMode && assertLView(projectedView);
   let projectionNodeIndex = -1;
 
   if (Array.isArray(nodeToProject)) {
@@ -2675,7 +2676,7 @@ export function addToViewTree<T extends LView|LContainer>(lView: LView, lViewOrL
 
 /** If node is an OnPush component, marks its LView dirty. */
 function markDirtyIfOnPush(lView: LView, viewIndex: number): void {
-  ngDevMode && assertLView(lView, true);
+  ngDevMode && assertLView(lView);
   const childComponentLView = getComponentViewByIndex(viewIndex, lView);
   if (!(childComponentLView[FLAGS] & LViewFlags.CheckAlways)) {
     childComponentLView[FLAGS] |= LViewFlags.Dirty;
