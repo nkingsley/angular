@@ -74,6 +74,13 @@ export interface EmbeddedViewFactory<T extends{}> {
   (context: T): View<T>;
 }
 
+export interface EmbeddedViewFactoryInternal<T extends{}> {
+  /**
+   * @param context
+   */
+  (context: T): LView;
+}
+
 /**
  * `LView` stores all of the information needed to process the instructions as
  * they are invoked from the template. Each embedded view and component view has its
@@ -348,14 +355,14 @@ export interface TView {
   /**
    * Pointer to the `TNode` that represents the root of the view.
    *
-   * If this is a `TViewNode` for an `LViewNode`, this is an embedded view of a container.
+   * If this is a `TViewNode` for an `LViewNode`, this is an **embedded view** of a container.
    * We need this pointer to be able to efficiently find this node when inserting the view
    * into an anchor.
    *
-   * If this is a `TElementNode`, this is the view of a root component. It has exactly one
+   * If this is a `TElementNode`, this is the **view of a root component**. It has exactly one
    * root TNode.
    *
-   * If this is null, this is the view of a component that is not at root. We do not store
+   * If this is `null`, this is the view of a component **that is not at root**. We do not store
    * the host TNodes for child component views because they can potentially have several
    * different host TNodes, depending on where the component is being used. These host
    * TNodes cannot be shared (due to different indices, etc).

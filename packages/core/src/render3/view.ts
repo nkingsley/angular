@@ -6,18 +6,19 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {assertDefined, assertDomNode, assertEqual, assertGreaterOrEqual, assertLessThan} from '../util/assert';
+import {assertDefined, assertDomNode, assertEqual} from '../util/assert';
 
-import {assertLContainer, assertLView} from './assert';
+import {assertLContainer, assertLView, assertLViewOrUndefined} from './assert';
 import {getLContext} from './context_discovery';
 import {appendChildViewDynamic, assignTViewNodeToLView, createLContainer, createLView, renderEmbeddedTemplate} from './instructions';
 import {ACTIVE_INDEX, LContainer, VIEWS} from './interfaces/container';
-import {TContainerNode, TElementNode, TNode} from './interfaces/node';
-import {RComment, RNode} from './interfaces/renderer';
-import {DECLARATION_VIEW, EmbeddedViewFactory, HOST, HOST_NODE, LView, LViewFlags, PARENT, QUERIES, RENDERER, TVIEW, View, ViewContainer} from './interfaces/view';
-import {destroyLView, detachView, insertView, nativeInsertBefore, nativeParentNode, nativeRemoveChild, removeChild, removeView} from './node_manipulation';
+import {TNode, TNodeType, TProjectionNode, TViewNode} from './interfaces/node';
+import {RElement, RNode} from './interfaces/renderer';
+import {DECLARATION_VIEW, EmbeddedViewFactory, EmbeddedViewFactoryInternal, HOST, LView, LViewFlags, PARENT, QUERIES, RENDERER, TVIEW, TView, View, ViewContainer} from './interfaces/view';
+import {destroyLView, detachView, getRenderParent, insertView, nativeInsertBefore, nativeParentNode, nativeRemoveChild} from './node_manipulation';
+import {project} from './project';
 import {getIsParent, setIsParent, setPreviousOrParentTNode} from './state';
-import {getLContainer as readLContainer, getLastRootElementFromView, getRNode, isLContainer, isLView, readElementValue} from './util';
+import {getLContainer as readLContainer, getLastRootElementFromView, getRNode, readElementValue} from './util';
 
 
 
@@ -32,41 +33,51 @@ export function getEmbeddedViewFactory<T extends{}>(node: RNode): EmbeddedViewFa
     const declarationLView = lContext.lView;
     const declarationTView = declarationLView[TVIEW];
     const declarationTNode = declarationTView.data[lContext.nodeIndex] as TNode;
-    const templateTView = declarationTNode.tViews;
-    if (templateTView) {
-      if (Array.isArray(templateTView)) {
-        ngDevMode &&
-            assertEqual(Array.isArray(templateTView), false, 'Array of TViews not supported');
-      } else {
-        return function(context: T): View {
-          const _isParent = getIsParent();
-          setIsParent(true);
-          setPreviousOrParentTNode(null !);
-
-          const lView = createLView(
-              declarationLView, templateTView, context, LViewFlags.CheckAlways, null, null);
-          lView[DECLARATION_VIEW] = declarationLView;
-
-          if (declarationTView.firstTemplatePass) {
-            declarationTView.node !.injectorIndex = declarationTNode.injectorIndex;
-          }
-
-          const queries = declarationLView[QUERIES];
-          if (queries) {
-            lView[QUERIES] = queries.createView();
-          }
-
-          renderEmbeddedTemplate(lView, templateTView, context);
-
-          setIsParent(_isParent);
-          return lView as any;
-        };
-      }
-    }
+    getEmbeddedViewFactoryInternal<T>(declarationTNode, declarationLView);
   }
   return null;
 }
 
+export function getEmbeddedViewFactoryInternal<T extends{}>(
+    declarationTNode: TNode, declarationLView: LView): EmbeddedViewFactoryInternal<T>|null {
+  const templateTView = declarationTNode.tViews;
+  if (templateTView) {
+    if (Array.isArray(templateTView)) {
+      throw new Error('Array of TViews not supported');
+    }
+
+    return function(context: T) {
+      const _isParent = getIsParent();
+      setIsParent(true);
+      setPreviousOrParentTNode(null !);
+
+      // TODO(benlesh): get the host and hostTnode
+      const host: RElement = null !;
+      const hostTNode: TViewNode = null !;
+
+      const lView = createLView(
+          declarationLView, templateTView, context, LViewFlags.CheckAlways, host, hostTNode);
+      lView[DECLARATION_VIEW] = declarationLView;
+
+      const queries = declarationLView[QUERIES];
+      if (queries) {
+        lView[QUERIES] = queries.createView();
+      }
+
+      assignTViewNodeToLView(templateTView, null, -1, lView);
+
+      if (templateTView.firstTemplatePass) {
+        templateTView.node !.injectorIndex = declarationTNode.injectorIndex;
+      }
+
+      renderEmbeddedTemplate(lView, templateTView, context);
+
+      setIsParent(_isParent);
+      return lView;
+    };
+  }
+  return null;
+}
 /**
  *
  */
@@ -115,7 +126,7 @@ export function viewContainerInsertAfter(
     viewContainer: ViewContainer, view: View, insertAfter: View | null): void {
   ngDevMode && assertLContainer(viewContainer);
   ngDevMode && assertLView(view);
-  ngDevMode && assertLView(insertAfter);
+  ngDevMode && assertLViewOrUndefined(insertAfter);
 
   return viewContainerInsertAfterInternal(viewContainer as any, view as any, insertAfter as any);
 }
@@ -127,19 +138,42 @@ function viewContainerInsertAfterInternal(
       insertAfterLView ? getLastRootElementFromView(insertAfterLView !) : containerNode;
   const tView = lView[TVIEW];
   let tNode = tView.firstChild;
-  ngDevMode && assertDefined(tNode, 'View has no nodes');
 
   const index = insertAfterLView ? viewContainerIndexOfInternal(lContainer, insertAfterLView) + 1 :
                                    lContainer[ACTIVE_INDEX];
   insertView(lView, lContainer, index);
 
-  assignTViewNodeToLView(tView, null, -1, lView);
-
   const referenceNode = insertAfterNode.nextSibling;
+  ngDevMode && assertEqual(tNode && tNode.parent, null, 'tNode parent should be null');
+
   while (tNode) {
-    const node = lView[tNode.index];
-    nativeInsertBefore(lView[RENDERER], containerNode.parentElement !, node, referenceNode);
-    tNode = tNode.next;
+    let nextTNode = null;
+    if (tNode.type === TNodeType.Projection) {
+      // it's a projection, we need to add to the DOM using `project`, and move to the next node
+      const renderParent = getRenderParent(tNode, lView);
+      project(lView, tNode as TProjectionNode, referenceNode, renderParent);
+      nextTNode = tNode.next;
+    } else if (tNode.type === TNodeType.ElementContainer) {
+      // it's an <ng-container> so we move down into the children, but there's nothing to add to the
+      // DOM.
+      nextTNode = tNode.child;
+    } else {
+      // it's a regular child, insert into the DOM and move next.
+      const node = getRNode(lView, tNode.index);
+      nativeInsertBefore(lView[RENDERER], containerNode.parentElement !, node, referenceNode);
+      nextTNode = tNode.next;
+    }
+
+    if (nextTNode === null) {
+      // If we don't have a nextTNode, we try to recover by going up to the parent. This is
+      // generally the result of digging down into `<ng-container>` and hitting the end of its
+      // children.
+      while (nextTNode !== null && tNode !== null) {
+        tNode = tNode.parent;
+        nextTNode = tNode && tNode.next;
+      }
+    }
+    tNode = nextTNode;
   }
 }
 
@@ -149,8 +183,8 @@ function viewContainerInsertAfterInternal(
  * @param view The view to append.
  */
 export function viewContainerAppend(viewContainer: ViewContainer, view: View): void {
-  ngDevMode && assertLContainer(viewContainer, true);
-  ngDevMode && assertLView(view, true);
+  ngDevMode && assertLContainer(viewContainer);
+  ngDevMode && assertLView(view);
 
   return viewContainerAppendInternal(viewContainer as any, view as any);
 }
@@ -168,8 +202,8 @@ function viewContainerAppendInternal(lContainer: LContainer, lView: LView) {
  * @param view The view to search for
  */
 export function viewContainerIndexOf(viewContainer: ViewContainer, view: View): number {
-  ngDevMode && assertLContainer(viewContainer, true);
-  ngDevMode && assertLView(view, true);
+  ngDevMode && assertLContainer(viewContainer);
+  ngDevMode && assertLView(view);
 
   return viewContainerIndexOfInternal(viewContainer as any, view as any);
 }
@@ -191,19 +225,19 @@ function viewContainerIndexOfInternal(lContainer: LContainer, lView: LView) {
  * @param view The view to remove from the container
  */
 export function viewContainerRemove(viewContainer: ViewContainer, view: View): void {
-  ngDevMode && assertLContainer(viewContainer, true);
-  ngDevMode && assertLView(view, true);
+  ngDevMode && assertLContainer(viewContainer);
+  ngDevMode && assertLView(view);
   viewContainerRemoveInternal(viewContainer as any, view as any);
 }
 
 function viewContainerRemoveInternal(lContainer: LContainer, lView: LView): void {
   const containerParentLView = lContainer[PARENT] !as LView;
-  ngDevMode && assertLView(containerParentLView, true);
+  ngDevMode && assertLView(containerParentLView);
   const views = lContainer[VIEWS];
   for (let i = 0; i < views.length; i++) {
     const containedLView = views[i];
     if (containedLView === lView) {
-      detachView(lContainer, i, false);
+      detachView(lContainer, i);
       destroyLView(containedLView);
       const tView = lView[TVIEW];
       let tNode = tView.firstChild;
@@ -225,7 +259,7 @@ function viewContainerRemoveInternal(lContainer: LContainer, lView: LView): void
  * @param viewContainer The view container examine for length.
  */
 export function viewContainerLength(viewContainer: ViewContainer): number {
-  ngDevMode && assertLContainer(viewContainer, true);
+  ngDevMode && assertLContainer(viewContainer);
   return viewContainerLengthInternal(viewContainer as any);
 }
 
@@ -239,17 +273,12 @@ function viewContainerLengthInternal(lContainer: LContainer): number {
  * @param viewContainer The container to get the view from
  * @param index The index of the view to retrieve within the container.
  */
-export function viewContainerGet(viewContainer: ViewContainer, index: number): View {
-  ngDevMode && assertLContainer(viewContainer, true);
-  ngDevMode && assertGreaterOrEqual(index, 0, 'index must be 0 or higher');
-  ngDevMode && assertLessThan(
-                   index, viewContainerLength(viewContainer),
-                   'index must be less than the length of the container');
+export function viewContainerGet(viewContainer: ViewContainer, index: number): View|null {
+  ngDevMode && assertLContainer(viewContainer);
   const lView = viewContainerGetInternal(viewContainer as any, index);
-  ngDevMode && assertLView(lView, true);
   return lView as any;
 }
 
-function viewContainerGetInternal(lContainer: LContainer, index: number): LView {
-  return lContainer[VIEWS][index];
+function viewContainerGetInternal(lContainer: LContainer, index: number): LView|null {
+  return lContainer[VIEWS][index] || null;
 }

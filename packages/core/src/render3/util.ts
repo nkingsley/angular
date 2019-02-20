@@ -15,11 +15,16 @@ import {LContext, MONKEY_PATCH_KEY_NAME} from './interfaces/context';
 import {ComponentDef, DirectiveDef} from './interfaces/definition';
 import {NO_PARENT_INJECTOR, RelativeInjectorLocation, RelativeInjectorLocationFlags} from './interfaces/injector';
 import {TContainerNode, TElementNode, TNode, TNodeFlags, TNodeType} from './interfaces/node';
-import {RComment, RElement, RNode, RText} from './interfaces/renderer';
+import {RElement, RNode} from './interfaces/renderer';
 import {StylingContext} from './interfaces/styling';
-import {CONTEXT, DECLARATION_VIEW, FLAGS, HEADER_OFFSET, HOST, LView, LViewFlags, PARENT, RootContext, TData, TVIEW, T_HOST} from './interfaces/view';
+import {CONTEXT, DECLARATION_VIEW, FLAGS, HEADER_OFFSET, HOST, LView, LViewFlags, PARENT, RootContext, TData, TVIEW, T_HOST, View} from './interfaces/view';
 
 
+
+export function viewToLView(view: View): LView {
+  ngDevMode && assertLView(view);
+  return view as any;
+}
 
 /**
  * Gets the parent LView of the passed LView, if the PARENT is an LContainer, will get the parent of
@@ -114,7 +119,7 @@ export function readElementValue(value: any): RElement {
 }
 
 export function getRNode(lView: LView, index: number): RNode {
-  ngDevMode && assertLView(lView, true);
+  ngDevMode && assertLView(lView);
   ngDevMode && assertGreaterOrEqual(index, HEADER_OFFSET, 'index must be past the HEADER_OFFSET');
 
   return readElementValue(lView[index]);
@@ -158,8 +163,8 @@ export function getNativeByIndex(index: number, lView: LView): RElement {
   return readElementValue(lView[index + HEADER_OFFSET]);
 }
 
-export function getNativeByTNode(tNode: TNode, hostView: LView): RElement|RText|RComment {
-  return readElementValue(hostView[tNode.index]);
+export function getNativeByTNode(tNode: TNode, lView: LView): RNode {
+  return getRNode(lView, tNode.index);
 }
 
 export function getTNode(index: number, view: LView): TNode {

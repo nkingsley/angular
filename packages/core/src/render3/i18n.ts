@@ -20,7 +20,7 @@ import {RComment, RElement} from './interfaces/renderer';
 import {SanitizerFn} from './interfaces/sanitization';
 import {StylingContext} from './interfaces/styling';
 import {BINDING_INDEX, HEADER_OFFSET, LView, RENDERER, TVIEW, TView, T_HOST} from './interfaces/view';
-import {appendChild, createTextNode, nativeRemoveNode} from './node_manipulation';
+import {createTextNode, getNativeAnchorNode, insertChildBefore, nativeRemoveNode} from './node_manipulation';
 import {getIsParent, getLView, getPreviousOrParentTNode, setIsParent, setPreviousOrParentTNode} from './state';
 import {NO_CHANGE} from './tokens';
 import {addAllToArray, getNativeByIndex, getNativeByTNode, getTNode, isLContainer, renderStringify} from './util';
@@ -470,10 +470,22 @@ function appendI18nNode(tNode: TNode, parentTNode: TNode, previousTNode: TNode |
   if (!previousTNode) {
     previousTNode = parentTNode;
   }
+
   // re-organize node tree to put this node in the correct position.
   if (previousTNode === parentTNode && tNode !== parentTNode.child) {
     tNode.next = parentTNode.child;
     parentTNode.child = tNode;
+
+    // HACK(benlesh); There was an issue where an infinite loop was created where
+    // `tNode.next.next === tNode`
+    let cursor: TNode|null = tNode;
+    while (cursor) {
+      if (cursor.next === tNode) {
+        cursor.next = null;
+      }
+      cursor = cursor.next;
+    }
+
   } else if (previousTNode !== parentTNode && tNode !== previousTNode.next) {
     tNode.next = previousTNode.next;
     previousTNode.next = tNode;
@@ -485,12 +497,14 @@ function appendI18nNode(tNode: TNode, parentTNode: TNode, previousTNode: TNode |
     tNode.parent = parentTNode as TElementNode;
   }
 
-  appendChild(getNativeByTNode(tNode, viewData), tNode, viewData);
+  const anchorNode = getNativeAnchorNode(parentTNode, viewData);
+
+  insertChildBefore(getNativeByTNode(tNode, viewData), tNode, viewData, anchorNode);
 
   const slotValue = viewData[tNode.index];
   if (tNode.type !== TNodeType.Container && isLContainer(slotValue)) {
     // Nodes that inject ViewContainerRef also have a comment node that should be moved
-    appendChild(slotValue[NATIVE], tNode, viewData);
+    insertChildBefore(slotValue[NATIVE], tNode, viewData, anchorNode);
   }
   return tNode;
 }

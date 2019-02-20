@@ -18,7 +18,7 @@ import {getComponentDef} from './definition';
 import {diPublicInInjector, getOrCreateNodeInjectorForNode} from './di';
 import {publishDefaultGlobalUtils} from './global_utils';
 import {registerPostOrderHooks, registerPreOrderHooks} from './hooks';
-import {addToViewTree, CLEAN_PROMISE, createLView, createNodeAtIndex, createTView, getOrCreateTView, initNodeFlags, instantiateRootComponent, locateHostElement, queueComponentIndexForCheck, refreshDescendantViews,} from './instructions';
+import {CLEAN_PROMISE, createLView, createNodeAtIndex, createTView, getOrCreateTView, initNodeFlags, instantiateRootComponent, locateHostElement, queueComponentIndexForCheck, refreshDescendantViews, appendChildView,} from './instructions';
 import {ComponentDef, ComponentType, RenderFlags} from './interfaces/definition';
 import {TElementNode, TNode, TNodeFlags, TNodeType} from './interfaces/node';
 import {PlayerHandler} from './interfaces/player';
@@ -134,7 +134,7 @@ export function renderComponent<T>(
     component = createRootComponent(
         componentView, componentDef, rootView, rootContext, opts.hostFeatures || null);
 
-    addToViewTree(rootView, componentView);
+    appendChildView(rootView, componentView);
 
     refreshDescendantViews(rootView);  // creation mode pass
     rootView[FLAGS] &= ~LViewFlags.CreationMode;

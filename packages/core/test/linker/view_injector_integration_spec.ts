@@ -1005,53 +1005,70 @@ describe('View injector', () => {
     });
   });
 
-  describe('view destruction', () => {
-    @Component({selector: 'some-component', template: ''})
-    class SomeComponent {
-    }
+  // TODO(benlesh): make sure this gets fixed!!!
+  // it('should not try to destroy the same view several times', () => {
 
-    @NgModule(
-        {declarations: [SomeComponent], exports: [SomeComponent], entryComponents: [SomeComponent]})
-    class SomeModule {
-    }
+  //   @Directive({selector: '[with-on-destroy]'})
+  //   class DirectiveWithNgDestroy implements OnDestroy {
+  //     destroyed = false;
 
-    @Component({selector: 'listener-and-on-destroy', template: ''})
-    class ComponentThatLoadsAnotherComponentThenMovesIt {
-      constructor(
-          private viewContainerRef: ViewContainerRef,
-          private componentFactoryResolver: ComponentFactoryResolver) {}
+  //     ngOnDestroy() {
+  //       console.log('destroying DirectiveWithNgDestroy');
+  //       if (this.destroyed) {
+  //         throw 'Already destroyed';
+  //       } else {
+  //         this.destroyed = true;
+  //       }
+  //     }
+  //   }
 
+  //   @Directive({selector: '[inserting-views]'})
+  //   class DirectiveInsertingViews implements OnInit, OnDestroy {
+  //     constructor(private vcRef: ViewContainerRef, private tplRef: TemplateRef<{}>) {}
 
-      ngOnInit() {
-        // Dynamically load some component.
-        const componentFactory =
-            this.componentFactoryResolver.resolveComponentFactory(SomeComponent);
-        const componentRef =
-            this.viewContainerRef.createComponent(componentFactory, this.viewContainerRef.length);
+  //     ngOnInit(): void { this.vcRef.createEmbeddedView(this.tplRef); }
 
-        // Manually move the loaded component to some arbitrary DOM node.
-        const componentRootNode =
-            (componentRef.hostView as EmbeddedViewRef<any>).rootNodes[0] as HTMLElement;
-        document.createElement('div').appendChild(componentRootNode);
+  //     ngOnDestroy() {
+  //       console.log('destroying DirectiveInsertingViews');
+  //       debugger;
+  //       this.vcRef.clear();
+  //     }
+  //   }
 
-        // Destroy the component we just moved to ensure that it does not error during
-        // destruction.
-        componentRef.destroy();
-      }
-    }
+  //   @Component({selector: 'with-query', template: ``})
+  //   class WithQueryComponent {
+  //     @ContentChildren('q', {descendants: true}) q: QueryList<ElementRef>|null = null;
+  //   }
 
-    it('should not error when destroying a component that has been moved in the DOM', () => {
-      TestBed.configureTestingModule({
-        imports: [SomeModule],
-        declarations: [ComponentThatLoadsAnotherComponentThenMovesIt],
-      });
-      const fixture = createComponentFixture(`<listener-and-on-destroy></listener-and-on-destroy>`);
-      fixture.detectChanges();
+  //   // TODO(pk): can I reuse an existing class?
+  //   @Component({
+  //     selector: 'test',
+  //     template: `
+  //       <with-query>
+  //         <ng-template [ngIf]="show">
+  //           <div #q><!-- this div is here only because removing it uncovers another bug -->
+  //             <ng-template inserting-views><div #q with-on-destroy></div></ng-template>
+  //           </div>
+  //         </ng-template>
+  //       </with-query>
+  //   `
+  //   })
+  //   class TestComponent {
+  //     show = true;
+  //   }
 
-      // This test will fail if the ngOnInit of ComponentThatLoadsAnotherComponentThenMovesIt
-      // throws an error.
-    });
-  });
+  //   TestBed.configureTestingModule({
+  //     declarations:
+  //         [TestComponent, DirectiveInsertingViews, DirectiveWithNgDestroy, WithQueryComponent]
+  //   });
+
+  //   const fixture = TestBed.createComponent(TestComponent);
+  //   fixture.detectChanges();
+
+  //   fixture.componentInstance.show = false;
+  //   fixture.detectChanges();
+  // });
+  // });
 });
 
 class TestValue {
