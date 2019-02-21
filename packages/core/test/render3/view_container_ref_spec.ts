@@ -902,7 +902,7 @@ describe('ViewContainerRef', () => {
     });
 
     describe('move', () => {
-      it('should move embedded views and associated DOM nodes without recreating them', () => {
+      fit('should move embedded views and associated DOM nodes without recreating them', () => {
         const fixture =
             new TemplateFixture(createTemplate, updateTemplate, 3, 1, [DirectiveWithVCRef]);
         createView('A');
@@ -923,6 +923,7 @@ describe('ViewContainerRef', () => {
         directiveInstance !.vcref.move(viewRef !, 0);
         fixture.update();
         expect(fixture.html).toEqual('<p vcref=""></p>**A**BC');
+        debugger;
 
         directiveInstance !.vcref.move(viewRef !, 1);
         fixture.update();

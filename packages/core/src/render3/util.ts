@@ -138,7 +138,7 @@ export function getLastRootElementFromView(lView: LView): RNode {
     lastChild = child;
     child = child.next;
   }
-  return lView[lastChild !.index];
+  return readElementValue(lView[lastChild !.index]);
 }
 
 /**

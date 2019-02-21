@@ -7,7 +7,7 @@
  */
 
 import {ViewEncapsulation} from '../metadata/view';
-import {assertDefined} from '../util/assert';
+import {assertDefined, assertNotEqual, assertNotSame, assertSame} from '../util/assert';
 
 import {assertLContainer, assertLView} from './assert';
 import {attachPatchData} from './context_discovery';
@@ -19,7 +19,7 @@ import {unusedValueExportToPlacateAjd as unused3} from './interfaces/projection'
 import {ProceduralRenderer3, RComment, RElement, RNode, RText, Renderer3, isProceduralRenderer, unusedValueExportToPlacateAjd as unused4} from './interfaces/renderer';
 import {CHILD_HEAD, CLEANUP, FLAGS, HEADER_OFFSET, HookData, LView, LViewFlags, NEXT, PARENT, QUERIES, RENDERER, TVIEW, T_HOST, unusedValueExportToPlacateAjd as unused5} from './interfaces/view';
 import {assertNodeType} from './node_assert';
-import {findComponentView, getLViewParent, getNativeByTNode, getRNode, getTNode, isComponent, isLContainer, isLView, isRootView, readElementValue, renderStringify} from './util';
+import {findComponentView, getLViewParent, getLastRootElementFromView, getNativeByTNode, getRNode, getTNode, isComponent, isLContainer, isLView, isRootView, readElementValue, renderStringify} from './util';
 
 const unusedValueToPlacateAjd = unused1 + unused2 + unused3 + unused4 + unused5;
 
@@ -581,6 +581,8 @@ function getHostNative(currentView: LView): RElement|null {
  */
 export function nativeInsertBefore(
     renderer: Renderer3, parent: RNode, child: RNode, beforeNode: RNode | null): void {
+  ngDevMode && assertNotSame(beforeNode, undefined, 'beforeNode must be a node or null');
+  ngDevMode && assertDefined(parent, 'parent node must be defined');
   if (isProceduralRenderer(renderer)) {
     renderer.insertBefore(parent, child, beforeNode);
   } else {
@@ -611,6 +613,7 @@ export function nativeParentNode(renderer: Renderer3, node: RNode): RElement|nul
  * Returns a native sibling of a given native node.
  */
 export function nativeNextSibling(renderer: Renderer3, node: RNode): RNode|null {
+  ngDevMode && assertDefined(node, 'node must be provided');
   return isProceduralRenderer(renderer) ? renderer.nextSibling(node) : node.nextSibling;
 }
 
@@ -643,11 +646,21 @@ export function getNativeAnchorNode(parentTNode: TNode, lView: LView): RNode|nul
  * Appends {@link RNode}(s) to the render parent found in the parent {@link LView}.
  * @param childRNodeOrNodes the nodes to append
  * @param childTNode A {@link TNode} used with the `parentLView` to get the renderParent
- * @param parentLView The parent {@link LView} to append nodes in.
+ * @param lView The {@link LView} to append nodes in.
  */
 export function appendChild(
-    childRNodeOrNodes: RNode | RNode[], childTNode: TNode, parentLView: LView): void {
-  insertChildBefore(childRNodeOrNodes, childTNode, parentLView, null);
+    childRNodeOrNodes: RNode | RNode[], childTNode: TNode, lView: LView): void {
+  let insertBefore: RNode|null = null;
+  if (childTNode.parent === null) {
+    // if we don't have a parent than our parent could be an LViewContainer which may
+    // want us to insert at a specific location.
+    const lContainer = lView[PARENT] !;
+    if (isLContainer(lContainer)) {
+      const parentTNode: TNode = childTNode.parent || lView[T_HOST] !;
+      insertBefore = getNativeAnchorNode(parentTNode, lView) !;
+    }
+  }
+  insertChildBefore(childRNodeOrNodes, childTNode, lView, insertBefore);
 }
 
 /**

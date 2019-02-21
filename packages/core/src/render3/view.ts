@@ -33,7 +33,7 @@ export function getEmbeddedViewFactory<T extends{}>(node: RNode): EmbeddedViewFa
     const declarationLView = lContext.lView;
     const declarationTView = declarationLView[TVIEW];
     const declarationTNode = declarationTView.data[lContext.nodeIndex] as TNode;
-    getEmbeddedViewFactoryInternal<T>(declarationTNode, declarationLView);
+    return getEmbeddedViewFactoryInternal<T>(declarationTNode, declarationLView) as any;
   }
   return null;
 }
@@ -136,6 +136,7 @@ function viewContainerInsertAfterInternal(
   const containerNode = readElementValue(lContainer[HOST]);
   const insertAfterNode =
       insertAfterLView ? getLastRootElementFromView(insertAfterLView !) : containerNode;
+  ngDevMode && assertDomNode(insertAfterNode);
   const tView = lView[TVIEW];
   let tNode = tView.firstChild;
 
@@ -160,7 +161,9 @@ function viewContainerInsertAfterInternal(
     } else {
       // it's a regular child, insert into the DOM and move next.
       const node = getRNode(lView, tNode.index);
-      nativeInsertBefore(lView[RENDERER], containerNode.parentElement !, node, referenceNode);
+      const parentElement = containerNode.parentElement;
+      parentElement !== null &&
+          nativeInsertBefore(lView[RENDERER], parentElement, node, referenceNode);
       nextTNode = tNode.next;
     }
 

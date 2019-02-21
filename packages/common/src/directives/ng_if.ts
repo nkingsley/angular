@@ -192,7 +192,6 @@ export class NgIf {
   }
 
   private _updateView() {
-    debugger;
     if (this._context.$implicit) {
       if (!this._thenViewRef) {
         this._viewContainer.clear();
