@@ -2169,7 +2169,7 @@ export function createLContainer(
     [],                              // views
     currentView,                     // parent
     null,                            // next
-    null,                            // queries
+    currentView[QUERIES],            // queries | Grab current queries. (TODO: remove me)
     hostNative,                      // host native
     native,                          // native
   ];
@@ -2205,6 +2205,10 @@ export function template(
     tContainerNode.tViews = createTView(
         -1, templateFn, consts, vars, tView.directiveRegistry, tView.pipeRegistry, null);
   }
+  // TODO(misko): we should capture the current LQueries here so that we can refer to them when we
+  // instantiate the template. Using the Container as a storage mechanism for queries is wrong.
+  // Container should not know about queries, since it is always the declaration query which matter
+  // not the insertion.
 
   createDirectivesAndLocals(tView, lView, localRefs, localRefExtractor);
   addTContainerToQueries(lView, tContainerNode);

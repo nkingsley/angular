@@ -6,19 +6,20 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {assertDefined, assertDomNode, assertEqual} from '../util/assert';
+import {assertDomNode, assertEqual} from '../util/assert';
 
 import {assertLContainer, assertLView, assertLViewOrUndefined} from './assert';
 import {getLContext} from './context_discovery';
 import {appendChildViewDynamic, assignTViewNodeToLView, createLContainer, createLView, renderEmbeddedTemplate} from './instructions';
 import {ACTIVE_INDEX, LContainer, VIEWS} from './interfaces/container';
 import {TNode, TNodeType, TProjectionNode, TViewNode} from './interfaces/node';
+import {LQueries} from './interfaces/query';
 import {RElement, RNode} from './interfaces/renderer';
-import {DECLARATION_VIEW, EmbeddedViewFactory, EmbeddedViewFactoryInternal, HOST, LView, LViewFlags, PARENT, QUERIES, RENDERER, TVIEW, TView, View, ViewContainer} from './interfaces/view';
+import {DECLARATION_VIEW, EmbeddedViewFactory, EmbeddedViewFactoryInternal, HOST, LView, LViewFlags, PARENT, QUERIES, RENDERER, TVIEW, View, ViewContainer} from './interfaces/view';
 import {destroyLView, detachView, getRenderParent, insertView, nativeInsertBefore, nativeParentNode, nativeRemoveChild} from './node_manipulation';
 import {project} from './project';
 import {getIsParent, setIsParent, setPreviousOrParentTNode} from './state';
-import {getLContainer as readLContainer, getLastRootElementFromView, getRNode, readElementValue} from './util';
+import {getLastRootElementFromView, getRNode, readElementValue, unwrapLContainer as readLContainer, viewContainerToLContainer, viewToLView} from './util';
 
 
 
@@ -33,13 +34,17 @@ export function getEmbeddedViewFactory<T extends{}>(node: RNode): EmbeddedViewFa
     const declarationLView = lContext.lView;
     const declarationTView = declarationLView[TVIEW];
     const declarationTNode = declarationTView.data[lContext.nodeIndex] as TNode;
-    return getEmbeddedViewFactoryInternal<T>(declarationTNode, declarationLView) as any;
+    const declarationQueries = declarationLView[QUERIES];
+    debugger;
+    return (getEmbeddedViewFactoryInternal<T>(
+        declarationTNode, declarationLView, declarationQueries) as any);
   }
   return null;
 }
 
 export function getEmbeddedViewFactoryInternal<T extends{}>(
-    declarationTNode: TNode, declarationLView: LView): EmbeddedViewFactoryInternal<T>|null {
+    declarationTNode: TNode, declarationLView: LView,
+    declarationQueries: LQueries | null): EmbeddedViewFactoryInternal<T>|null {
   const templateTView = declarationTNode.tViews;
   if (templateTView) {
     if (Array.isArray(templateTView)) {
@@ -59,9 +64,8 @@ export function getEmbeddedViewFactoryInternal<T extends{}>(
           declarationLView, templateTView, context, LViewFlags.CheckAlways, host, hostTNode);
       lView[DECLARATION_VIEW] = declarationLView;
 
-      const queries = declarationLView[QUERIES];
-      if (queries) {
-        lView[QUERIES] = queries.createView();
+      if (declarationQueries) {
+        lView[QUERIES] = declarationQueries.createView();
       }
 
       assignTViewNodeToLView(templateTView, null, -1, lView);
@@ -135,7 +139,7 @@ function viewContainerInsertAfterInternal(
     lContainer: LContainer, lView: LView, insertAfterLView: LView | null) {
   const containerNode = readElementValue(lContainer[HOST]);
   const insertAfterNode =
-      insertAfterLView ? getLastRootElementFromView(insertAfterLView !) : containerNode;
+      insertAfterLView ? getLastRootElementFromView(insertAfterLView) : containerNode;
   ngDevMode && assertDomNode(insertAfterNode);
   const tView = lView[TVIEW];
   let tNode = tView.firstChild;
@@ -161,7 +165,7 @@ function viewContainerInsertAfterInternal(
     } else {
       // it's a regular child, insert into the DOM and move next.
       const node = getRNode(lView, tNode.index);
-      const parentElement = containerNode.parentElement;
+      const parentElement = nativeParentNode(lView[RENDERER], containerNode);
       parentElement !== null &&
           nativeInsertBefore(lView[RENDERER], parentElement, node, referenceNode);
       nextTNode = tNode.next;
@@ -227,13 +231,14 @@ function viewContainerIndexOfInternal(lContainer: LContainer, lView: LView) {
  * @param viewContainer The container to remove the view from
  * @param view The view to remove from the container
  */
-export function viewContainerRemove(viewContainer: ViewContainer, view: View): void {
-  ngDevMode && assertLContainer(viewContainer);
-  ngDevMode && assertLView(view);
-  viewContainerRemoveInternal(viewContainer as any, view as any);
+export function viewContainerRemove(
+    viewContainer: ViewContainer, view: View, shouldDestroy: boolean = true): void {
+  viewContainerRemoveInternal(
+      viewContainerToLContainer(viewContainer), viewToLView(view), shouldDestroy);
 }
 
-function viewContainerRemoveInternal(lContainer: LContainer, lView: LView): void {
+export function viewContainerRemoveInternal(
+    lContainer: LContainer, lView: LView, shouldDestroy: boolean): void {
   const containerParentLView = lContainer[PARENT] !as LView;
   ngDevMode && assertLView(containerParentLView);
   const views = lContainer[VIEWS];
@@ -241,7 +246,6 @@ function viewContainerRemoveInternal(lContainer: LContainer, lView: LView): void
     const containedLView = views[i];
     if (containedLView === lView) {
       detachView(lContainer, i);
-      destroyLView(containedLView);
       const tView = lView[TVIEW];
       let tNode = tView.firstChild;
       const renderer = lView[RENDERER];
@@ -253,6 +257,7 @@ function viewContainerRemoveInternal(lContainer: LContainer, lView: LView): void
         }
         tNode = tNode.next;
       }
+      shouldDestroy && destroyLView(containedLView);
     }
   }
 }
@@ -284,4 +289,13 @@ export function viewContainerGet(viewContainer: ViewContainer, index: number): V
 
 function viewContainerGetInternal(lContainer: LContainer, index: number): LView|null {
   return lContainer[VIEWS][index] || null;
+}
+
+
+export function viewDestroy(view: View): void {
+  viewDestroyInternal(viewToLView(view));
+}
+
+export function viewDestroyInternal(lView: LView): void {
+  destroyLView(lView);
 }

@@ -1602,86 +1602,86 @@ describe('query', () => {
          });
 
       // https://stackblitz.com/edit/angular-7vvo9j?file=src%2Fapp%2Fapp.component.ts
-      it('should report results when the same TemplateRef is inserted into different ViewContainerRefs',
-         () => {
-           let tpl: TemplateRef<{}>;
+      fit('should report results when the same TemplateRef is inserted into different ViewContainerRefs',
+          () => {
+            let tpl: TemplateRef<{}>;
 
-           function Cmpt_Template_1(rf: RenderFlags, ctx: {idx: number, container_idx: number}) {
-             if (rf & RenderFlags.Create) {
-               element(0, 'div', null, ['foo', '']);
-             }
-             if (rf & RenderFlags.Update) {
-               elementProperty(0, 'id', bind('foo_' + ctx.container_idx + '_' + ctx.idx));
-             }
-           }
+            function Cmpt_Template_1(rf: RenderFlags, ctx: {idx: number, container_idx: number}) {
+              if (rf & RenderFlags.Create) {
+                element(0, 'div', null, ['foo', '']);
+              }
+              if (rf & RenderFlags.Update) {
+                elementProperty(0, 'id', bind('foo_' + ctx.container_idx + '_' + ctx.idx));
+              }
+            }
 
-           /**
-            * <ng-template #tpl let-idx="idx" let-container_idx="container_idx">
-            *   <div #foo [id]="'foo_'+container_idx+'_'+idx"></div>
-            * </ng-template>
-            *
-            * <ng-template viewInserter #vi1="vi"></ng-template>
-            * <ng-template viewInserter #vi2="vi"></ng-template>
-            */
-           class Cmpt {
-             query: any;
-             static ngComponentDef = defineComponent({
-               type: Cmpt,
-               factory: () => new Cmpt(),
-               selectors: [['my-app']],
-               consts: 4,
-               vars: 0,
-               template: function(rf: RenderFlags, ctx: any) {
-                 let tmp: any;
-                 if (rf & RenderFlags.Create) {
-                   template(
-                       0, Cmpt_Template_1, 2, 1, 'ng-template', [], ['tpl', ''],
-                       templateRefExtractor);
-                   template(2, null, 0, 0, 'ng-template', [AttributeMarker.SelectOnly, 'vc']);
-                   template(3, null, 0, 0, 'ng-template', [AttributeMarker.SelectOnly, 'vc']);
-                 }
+            /**
+             * <ng-template #tpl let-idx="idx" let-container_idx="container_idx">
+             *   <div #foo [id]="'foo_'+container_idx+'_'+idx"></div>
+             * </ng-template>
+             *
+             * <ng-template viewInserter #vi1="vi"></ng-template>
+             * <ng-template viewInserter #vi2="vi"></ng-template>
+             */
+            class Cmpt {
+              query: any;
+              static ngComponentDef = defineComponent({
+                type: Cmpt,
+                factory: () => new Cmpt(),
+                selectors: [['my-app']],
+                consts: 4,
+                vars: 0,
+                template: function(rf: RenderFlags, ctx: any) {
+                  let tmp: any;
+                  if (rf & RenderFlags.Create) {
+                    template(
+                        0, Cmpt_Template_1, 2, 1, 'ng-template', [], ['tpl', ''],
+                        templateRefExtractor);
+                    template(2, null, 0, 0, 'ng-template', [AttributeMarker.SelectOnly, 'vc']);
+                    template(3, null, 0, 0, 'ng-template', [AttributeMarker.SelectOnly, 'vc']);
+                  }
 
-                 if (rf & RenderFlags.Update) {
-                   tpl = reference(1);
-                 }
+                  if (rf & RenderFlags.Update) {
+                    tpl = reference(1);
+                  }
 
-               },
-               viewQuery: (rf: RenderFlags, cmpt: Cmpt) => {
-                 let tmp: any;
-                 if (rf & RenderFlags.Create) {
-                   viewQuery(['foo'], true);
-                 }
-                 if (rf & RenderFlags.Update) {
-                   queryRefresh(tmp = loadViewQuery<QueryList<any>>()) &&
-                       (cmpt.query = tmp as QueryList<any>);
-                 }
-               },
-               directives: () => [ViewContainerManipulatorDirective],
-             });
-           }
-           const fixture = new ComponentFixture(Cmpt);
-           const qList = fixture.component.query;
+                },
+                viewQuery: (rf: RenderFlags, cmpt: Cmpt) => {
+                  let tmp: any;
+                  if (rf & RenderFlags.Create) {
+                    viewQuery(['foo'], true);
+                  }
+                  if (rf & RenderFlags.Update) {
+                    queryRefresh(tmp = loadViewQuery<QueryList<any>>()) &&
+                        (cmpt.query = tmp as QueryList<any>);
+                  }
+                },
+                directives: () => [ViewContainerManipulatorDirective],
+              });
+            }
+            const fixture = new ComponentFixture(Cmpt);
+            const qList = fixture.component.query;
 
-           expect(qList.length).toBe(0);
+            expect(qList.length).toBe(0);
 
-           directiveInstances[0].insertTpl(tpl !, {idx: 0, container_idx: 0}, 0);
-           directiveInstances[1].insertTpl(tpl !, {idx: 0, container_idx: 1}, 0);
-           fixture.update();
-           expect(qList.length).toBe(2);
-           let qListArr = qList.toArray();
-           expect(qListArr[0].nativeElement.getAttribute('id')).toBe('foo_1_0');
-           expect(qListArr[1].nativeElement.getAttribute('id')).toBe('foo_0_0');
+            directiveInstances[0].insertTpl(tpl !, {idx: 0, container_idx: 0}, 0);
+            directiveInstances[1].insertTpl(tpl !, {idx: 0, container_idx: 1}, 0);
+            fixture.update();
+            expect(qList.length).toBe(2);
+            let qListArr = qList.toArray();
+            expect(qListArr[0].nativeElement.getAttribute('id')).toBe('foo_1_0');
+            expect(qListArr[1].nativeElement.getAttribute('id')).toBe('foo_0_0');
 
-           directiveInstances[0].remove();
-           fixture.update();
-           expect(qList.length).toBe(1);
-           qListArr = qList.toArray();
-           expect(qListArr[0].nativeElement.getAttribute('id')).toBe('foo_1_0');
+            directiveInstances[0].remove();
+            fixture.update();
+            expect(qList.length).toBe(1);
+            qListArr = qList.toArray();
+            expect(qListArr[0].nativeElement.getAttribute('id')).toBe('foo_1_0');
 
-           directiveInstances[1].remove();
-           fixture.update();
-           expect(qList.length).toBe(0);
-         });
+            directiveInstances[1].remove();
+            fixture.update();
+            expect(qList.length).toBe(0);
+          });
 
       // https://stackblitz.com/edit/angular-wpd6gv?file=src%2Fapp%2Fapp.component.ts
       it('should report results from views inserted in a lifecycle hook', () => {

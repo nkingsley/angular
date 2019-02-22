@@ -9,7 +9,7 @@
 import {assertDataInRange, assertDefined, assertGreaterOrEqual, assertGreaterThan, assertLessThan} from '../util/assert';
 import {global} from '../util/global';
 
-import {assertLView} from './assert';
+import {assertLContainer, assertLView} from './assert';
 import {LCONTAINER_LENGTH, LContainer} from './interfaces/container';
 import {LContext, MONKEY_PATCH_KEY_NAME} from './interfaces/context';
 import {ComponentDef, DirectiveDef} from './interfaces/definition';
@@ -17,12 +17,26 @@ import {NO_PARENT_INJECTOR, RelativeInjectorLocation, RelativeInjectorLocationFl
 import {TContainerNode, TElementNode, TNode, TNodeFlags, TNodeType} from './interfaces/node';
 import {RElement, RNode} from './interfaces/renderer';
 import {StylingContext} from './interfaces/styling';
-import {CONTEXT, DECLARATION_VIEW, FLAGS, HEADER_OFFSET, HOST, LView, LViewFlags, PARENT, RootContext, TData, TVIEW, T_HOST, View} from './interfaces/view';
+import {CONTEXT, DECLARATION_VIEW, FLAGS, HEADER_OFFSET, HOST, LView, LViewFlags, PARENT, RootContext, TData, TVIEW, T_HOST, View, ViewContainer} from './interfaces/view';
 
 
 
 export function viewToLView(view: View): LView {
   ngDevMode && assertLView(view);
+  return view as any;
+}
+
+export function lViewToView(view: LView): View {
+  ngDevMode && assertLView(view);
+  return view as any;
+}
+
+export function lContainerToViewContainer(view: LContainer): ViewContainer {
+  ngDevMode && assertLContainer(view);
+  return view as any;
+}
+export function viewContainerToLContainer(view: ViewContainer): LContainer {
+  ngDevMode && assertLContainer(view);
   return view as any;
 }
 
@@ -145,12 +159,13 @@ export function getLastRootElementFromView(lView: LView): RNode {
  * TODO: comment
  * @param value
  */
-export function getLContainer(value: LView | LContainer | RNode | StylingContext): LContainer|null {
+export function unwrapLContainer(value: LView | LContainer | RNode | StylingContext): LContainer|
+    null {
   while (Array.isArray(value)) {
-    value = value[HOST] as any;
     if (isLContainer(value)) {
       return value;
     }
+    value = value[HOST] as any;
   }
   return null;
 }

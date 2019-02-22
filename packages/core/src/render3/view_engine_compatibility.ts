@@ -22,12 +22,12 @@ import {appendChildView, createLContainer} from './instructions';
 import {ACTIVE_INDEX, LContainer, VIEWS} from './interfaces/container';
 import {TContainerNode, TElementContainerNode, TElementNode, TNode, TNodeType} from './interfaces/node';
 import {RNode, isProceduralRenderer} from './interfaces/renderer';
-import {CONTEXT, EmbeddedViewFactoryInternal, LView, RENDERER} from './interfaces/view';
+import {CONTEXT, EmbeddedViewFactoryInternal, LView, QUERIES, RENDERER} from './interfaces/view';
 import {assertNodeOfPossibleTypes} from './node_assert';
-import {appendChild, detachView, nativeInsertBefore, nativeNextSibling, nativeParentNode, removeView} from './node_manipulation';
+import {appendChild, nativeInsertBefore, nativeNextSibling, nativeParentNode} from './node_manipulation';
 import {getLView, getPreviousOrParentTNode} from './state';
-import {findComponentView, getComponentViewByIndex, getNativeByTNode, getParentInjectorTNode, getParentInjectorView, hasParentInjector, isComponent, isLContainer, isRootView} from './util';
-import {getEmbeddedViewFactoryInternal, viewContainerAppend, viewContainerGet, viewContainerInsertAfter} from './view';
+import {findComponentView, getComponentViewByIndex, getNativeByTNode, getParentInjectorTNode, getParentInjectorView, hasParentInjector, isComponent, isLContainer, isRootView, lContainerToViewContainer, lViewToView, unwrapLContainer as unwrapLContainer} from './util';
+import {getEmbeddedViewFactoryInternal, viewContainerAppend, viewContainerGet, viewContainerInsertAfter, viewContainerRemoveInternal, viewDestroyInternal} from './view';
 import {ViewRef} from './view_ref';
 
 
@@ -88,13 +88,13 @@ interface IvyTemplateRef<T> {
  *
  * @param TemplateRefToken The TemplateRef type
  * @param ElementRefToken The ElementRef type
- * @param hostTNode The node that is requesting a TemplateRef
- * @param hostView The view to which the node belongs
+ * @param declarationTNode The node that is requesting a TemplateRef
+ * @param declarationLView The view to which the node belongs
  * @returns The TemplateRef instance to use
  */
 export function createTemplateRef<T>(
     TemplateRefToken: typeof ViewEngine_TemplateRef, ElementRefToken: typeof ViewEngine_ElementRef,
-    hostTNode: TNode, hostView: LView): ViewEngine_TemplateRef<T>|null {
+    declarationTNode: TNode, declarationLView: LView): ViewEngine_TemplateRef<T>|null {
   if (!R3TemplateRef) {
     // TODO: Fix class name, should be TemplateRef, but there appears to be a rollup bug
     R3TemplateRef = class TemplateRef_<T> extends TemplateRefToken<T> implements IvyTemplateRef<T> {
@@ -114,11 +114,15 @@ export function createTemplateRef<T>(
     };
   }
 
-  if (hostTNode.type === TNodeType.Container) {
-    ngDevMode && assertDefined(hostTNode.tViews, 'TView must be allocated');
+  if (declarationTNode.type === TNodeType.Container) {
+    ngDevMode && assertDefined(declarationTNode.tViews, 'TView must be allocated');
+    ngDevMode && assertNodeOfPossibleTypes(declarationTNode, TNodeType.Container);
+    const declarationContainer = unwrapLContainer(declarationLView[declarationTNode.index]);
+    const declarationQueries =
+        declarationContainer === null ? declarationContainer : declarationContainer[QUERIES];
     return new R3TemplateRef(
-        createElementRef(ElementRefToken, hostTNode, hostView),
-        getEmbeddedViewFactoryInternal(hostTNode, hostView) !);
+        createElementRef(ElementRefToken, declarationTNode, declarationLView),
+        getEmbeddedViewFactoryInternal(declarationTNode, declarationLView, declarationQueries) !);
   } else {
     return null;
   }
@@ -164,7 +168,8 @@ export function createContainerRef(
       private _viewRefs: viewEngine_ViewRef[] = [];
 
       constructor(
-          private _lContainer: LContainer,
+          private _lContainer:
+              LContainer,  // TODO(misko): this should be ViewContainer (not LContainer)
           private _hostTNode: TElementNode|TContainerNode|TElementContainerNode,
           private _hostView: LView) {
         super();
@@ -223,15 +228,15 @@ export function createContainerRef(
         if (viewRef.destroyed) {
           throw new Error('Cannot insert a destroyed View in a ViewContainer!');
         }
-        const lViewToInsert = (viewRef as ViewRef<any>)._lView !;
+        const viewToInsert = lViewToView((viewRef as ViewRef<any>)._lView);
         const adjustedInsertionIndex = this._adjustIndex(insertionIndex);
-        const lContainer = this._lContainer;
+        const viewContainer = lContainerToViewContainer(this._lContainer);
 
         if (insertionIndex === undefined) {
-          viewContainerAppend(lContainer as any, lViewToInsert as any);
+          viewContainerAppend(viewContainer, viewToInsert);
         } else {
-          const afterView = viewContainerGet(lContainer as any, insertionIndex - 1);
-          viewContainerInsertAfter(lContainer as any, lViewToInsert as any, afterView);
+          const afterView = viewContainerGet(viewContainer, insertionIndex - 1);
+          viewContainerInsertAfter(viewContainer, viewToInsert, afterView);
         }
 
         this._viewRefs.splice(adjustedInsertionIndex, 0, viewRef);
@@ -251,19 +256,18 @@ export function createContainerRef(
 
       indexOf(viewRef: viewEngine_ViewRef): number { return this._viewRefs.indexOf(viewRef); }
 
-      remove(index?: number): void {
-        const adjustedIdx = this._adjustIndex(index, -1);
-        removeView(this._lContainer, adjustedIdx);
-        this._viewRefs.splice(adjustedIdx, 1);
+      remove(index: number = 0): void {
+        viewDestroyInternal((this.detach(index) as ViewRef<any>)._lView);
       }
 
-      detach(index?: number): viewEngine_ViewRef|null {
-        const adjustedIdx = this._adjustIndex(index, -1);
-        const view = detachView(this._lContainer, adjustedIdx);
-        const wasDetached = this._viewRefs.splice(adjustedIdx, 1)[0] != null;
-        return wasDetached ? new ViewRef(view, view[CONTEXT], -1) : null;
+      detach(index: number = 0): viewEngine_ViewRef|null {
+        const viewToRemove = this._viewRefs[index] as ViewRef<any>;
+        this._viewRefs.splice(index, 1);
+        viewContainerRemoveInternal(this._lContainer, viewToRemove._lView, false);
+        return viewToRemove;
       }
 
+      // TODO(misko): can we remove this method. I don't understand its purpose.
       private _adjustIndex(index?: number, shift: number = 0) {
         if (index == null) {
           return this._lContainer[VIEWS].length + shift;
@@ -295,6 +299,7 @@ export function createContainerRef(
     // can't use LTree to insert container's marker node (both parent of a comment node and the
     // commend node itself is located outside of elements hold by LTree). In this specific case we
     // use low-level DOM manipulation to insert container's marker (comment) node.
+    // TODO(misko): All references to node_manipulation.ts should disappear.
     if (isRootView(hostView)) {
       const renderer = hostView[RENDERER];
       const hostNative = getNativeByTNode(hostTNode, hostView) !;

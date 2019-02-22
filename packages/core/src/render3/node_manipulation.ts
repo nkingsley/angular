@@ -7,7 +7,7 @@
  */
 
 import {ViewEncapsulation} from '../metadata/view';
-import {assertDefined, assertNotEqual, assertNotSame, assertSame} from '../util/assert';
+import {assertDefined, assertDomNode, assertNotEqual, assertNotSame, assertSame} from '../util/assert';
 
 import {assertLContainer, assertLView} from './assert';
 import {attachPatchData} from './context_discovery';
@@ -606,6 +606,7 @@ export function nativeRemoveChild(
  * Returns a native parent of a given native node.
  */
 export function nativeParentNode(renderer: Renderer3, node: RNode): RElement|null {
+  ngDevMode && assertDomNode(node);
   return isProceduralRenderer(renderer) ? renderer.parentNode(node) : node.parentElement;
 }
 
