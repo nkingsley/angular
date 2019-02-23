@@ -11,7 +11,7 @@ import {assertDomNode, assertEqual} from '../util/assert';
 import {assertLContainer, assertLView, assertLViewOrUndefined} from './assert';
 import {getLContext} from './context_discovery';
 import {appendChildViewDynamic, assignTViewNodeToLView, createLContainer, createLView, renderEmbeddedTemplate} from './instructions';
-import {ACTIVE_INDEX, LContainer, VIEWS} from './interfaces/container';
+import {LContainer, VIEWS} from './interfaces/container';
 import {TNode, TNodeType, TProjectionNode, TViewNode} from './interfaces/node';
 import {LQueries} from './interfaces/query';
 import {RElement, RNode} from './interfaces/renderer';
@@ -35,7 +35,6 @@ export function getEmbeddedViewFactory<T extends{}>(node: RNode): EmbeddedViewFa
     const declarationTView = declarationLView[TVIEW];
     const declarationTNode = declarationTView.data[lContext.nodeIndex] as TNode;
     const declarationQueries = declarationLView[QUERIES];
-    debugger;
     return (getEmbeddedViewFactoryInternal<T>(
         declarationTNode, declarationLView, declarationQueries) as any);
   }
@@ -145,7 +144,7 @@ function viewContainerInsertAfterInternal(
   let tNode = tView.firstChild;
 
   const index = insertAfterLView ? viewContainerIndexOfInternal(lContainer, insertAfterLView) + 1 :
-                                   lContainer[ACTIVE_INDEX];
+                                   lContainer[VIEWS].length;
   insertView(lView, lContainer, index);
 
   const referenceNode = insertAfterNode.nextSibling;

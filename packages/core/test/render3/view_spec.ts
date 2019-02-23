@@ -12,7 +12,7 @@ import {getEmbeddedViewFactory, viewContainerInsertAfter, getViewContainer, view
 import {CHILD_HEAD, NEXT, CHILD_TAIL} from '@angular/core/src/render3/interfaces/view';
 
 describe('ViewContainer manipulation commands', () => {
-  it('should get the embedded view from a comment added by ng-template and be able to insert it', () => {
+  fit('should get the embedded view from a comment added by ng-template and be able to insert it', () => {
     const log: any[] = [];
     const fixture = new TemplateFixture(
         () => {
@@ -28,6 +28,7 @@ describe('ViewContainer manipulation commands', () => {
             }
             if (rf & RenderFlags.Update) {
               textBinding(3, bind(ctx.name));
+              debugger;
               log.push(ctx.name);
             }
           }, 4, 1);
@@ -41,6 +42,7 @@ describe('ViewContainer manipulation commands', () => {
     expect(comment.nodeType).toBe(Node.COMMENT_NODE);
     const embeddedViewFactory = getEmbeddedViewFactory(comment) !;
     expect(typeof embeddedViewFactory).toEqual('function');
+    debugger;
     const commentViewContainer = getViewContainer(comment) !;
 
     const bView = embeddedViewFactory({name: 'B'});

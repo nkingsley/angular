@@ -2294,6 +2294,7 @@ export function containerRefreshStart(index: number): void {
   ngDevMode && assertNodeType(previousOrParentTNode, TNodeType.Container);
   setIsParent(true);
 
+  debugger;
   lView[index + HEADER_OFFSET][ACTIVE_INDEX] = 0;
 
   // We need to execute init hooks here so ngOnInit hooks are called in top level views
@@ -2421,6 +2422,7 @@ export function embeddedViewStart(viewBlockId: number, consts: number, vars: num
       // it is a new view, insert it into collection of views for a given container
       insertView(viewToRender, lContainer, lContainer[ACTIVE_INDEX] !);
     }
+    debugger;
     lContainer[ACTIVE_INDEX] !++;
   }
   return isCreationMode(viewToRender) ? RenderFlags.Create | RenderFlags.Update :

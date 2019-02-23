@@ -229,16 +229,13 @@ export function createContainerRef(
           throw new Error('Cannot insert a destroyed View in a ViewContainer!');
         }
         const viewToInsert = lViewToView((viewRef as ViewRef<any>)._lView);
-        const adjustedInsertionIndex = this._adjustIndex(insertionIndex);
+        const adjustedInsertionIndex = this._defaultToViewCount(insertionIndex, 0);
         const viewContainer = lContainerToViewContainer(this._lContainer);
 
-        if (insertionIndex === undefined) {
-          viewContainerAppend(viewContainer, viewToInsert);
-        } else {
-          const afterView = viewContainerGet(viewContainer, insertionIndex - 1);
-          viewContainerInsertAfter(viewContainer, viewToInsert, afterView);
-        }
-
+        const afterView = adjustedInsertionIndex === 0 ?
+            null :
+            viewContainerGet(viewContainer, adjustedInsertionIndex - 1);
+        viewContainerInsertAfter(viewContainer, viewToInsert, afterView);
         this._viewRefs.splice(adjustedInsertionIndex, 0, viewRef);
 
         return viewRef;
@@ -250,32 +247,35 @@ export function createContainerRef(
         }
         const index = this.indexOf(viewRef);
         this.detach(index);
-        this.insert(viewRef, this._adjustIndex(newIndex));
+        this.insert(viewRef, this._defaultToViewCount(newIndex, 0));
         return viewRef;
       }
 
       indexOf(viewRef: viewEngine_ViewRef): number { return this._viewRefs.indexOf(viewRef); }
 
-      remove(index: number = 0): void {
+      remove(index: number): void {
         viewDestroyInternal((this.detach(index) as ViewRef<any>)._lView);
       }
 
-      detach(index: number = 0): viewEngine_ViewRef|null {
+      detach(removeIndex?: number): viewEngine_ViewRef|null {
+        const index = this._defaultToViewCount(removeIndex, -1);
         const viewToRemove = this._viewRefs[index] as ViewRef<any>;
         this._viewRefs.splice(index, 1);
         viewContainerRemoveInternal(this._lContainer, viewToRemove._lView, false);
         return viewToRemove;
       }
 
-      // TODO(misko): can we remove this method. I don't understand its purpose.
-      private _adjustIndex(index?: number, shift: number = 0) {
+      /**
+       * When index is not specified we need to return the last
+       */
+      private _defaultToViewCount(index: number|undefined|null, offsetFromLast: number) {
         if (index == null) {
-          return this._lContainer[VIEWS].length + shift;
+          return this._lContainer[VIEWS].length + offsetFromLast;
         }
         if (ngDevMode) {
           assertGreaterThan(index, -1, 'index must be positive');
           // +1 because it's legal to insert at the end.
-          assertLessThan(index, this._lContainer[VIEWS].length + 1 + shift, 'index');
+          assertLessThan(index, this._lContainer[VIEWS].length + 1, 'index');
         }
         return index;
       }
