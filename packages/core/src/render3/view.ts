@@ -18,7 +18,7 @@ import {RComment, RElement, RNode} from './interfaces/renderer';
 import {DECLARATION_VIEW, EmbeddedViewFactory, EmbeddedViewFactoryInternal, HOST, LView, LViewFlags, PARENT, QUERIES, RENDERER, TVIEW, TView, View, ViewContainer} from './interfaces/view';
 import {destroyLView, detachView, getRenderParent, insertView, nativeInsertBefore, nativeParentNode, nativeRemoveChild} from './node_manipulation';
 import {project} from './project';
-import {getIsParent, setIsParent, setPreviousOrParentTNode} from './state';
+import {getIsParent, getPreviousOrParentTNode, setIsParent, setPreviousOrParentTNode} from './state';
 import {getLastRootElementFromView, getRNode, unwrapLContainer, unwrapRNode, viewContainerToLContainer, viewToLView} from './util/view_utils';
 
 
@@ -51,31 +51,36 @@ export function getEmbeddedViewFactoryInternal<T extends{}>(
 
     return function(context: T) {
       const _isParent = getIsParent();
-      setIsParent(true);
-      setPreviousOrParentTNode(null !);
+      const _previousOrParentTNode = getPreviousOrParentTNode();
+      try {
+        setIsParent(true);
+        setPreviousOrParentTNode(null !);
 
-      // TODO(benlesh): get the host and hostTnode
-      const host: RElement = null !;
-      const hostTNode: TViewNode = null !;
+        // TODO(benlesh): get the host and hostTnode
+        const host: RElement = null !;
+        const hostTNode: TViewNode = null !;
 
-      const lView = createLView(
-          declarationLView, templateTView, context, LViewFlags.CheckAlways, host, hostTNode);
-      lView[DECLARATION_VIEW] = declarationLView;
+        const lView = createLView(
+            declarationLView, templateTView, context, LViewFlags.CheckAlways, host, hostTNode);
+        lView[DECLARATION_VIEW] = declarationLView;
 
-      if (declarationQueries) {
-        lView[QUERIES] = declarationQueries.createView();
+        if (declarationQueries) {
+          lView[QUERIES] = declarationQueries.createView();
+        }
+
+        assignTViewNodeToLView(templateTView, null, -1, lView);
+
+        if (templateTView.firstTemplatePass) {
+          templateTView.node !.injectorIndex = declarationTNode.injectorIndex;
+        }
+
+        renderEmbeddedTemplate(lView, templateTView, context);
+
+        return lView;
+      } finally {
+        setIsParent(_isParent);
+        setPreviousOrParentTNode(_previousOrParentTNode);
       }
-
-      assignTViewNodeToLView(templateTView, null, -1, lView);
-
-      if (templateTView.firstTemplatePass) {
-        templateTView.node !.injectorIndex = declarationTNode.injectorIndex;
-      }
-
-      renderEmbeddedTemplate(lView, templateTView, context);
-
-      setIsParent(_isParent);
-      return lView;
     };
   }
   return null;

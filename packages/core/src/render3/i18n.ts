@@ -9,7 +9,8 @@
 import {SRCSET_ATTRS, URI_ATTRS, VALID_ATTRS, VALID_ELEMENTS, getTemplateContent} from '../sanitization/html_sanitizer';
 import {InertBodyHelper} from '../sanitization/inert_body';
 import {_sanitizeUrl, sanitizeSrcset} from '../sanitization/url_sanitizer';
-import {assertDefined, assertEqual, assertGreaterThan} from '../util/assert';
+import {assertDefined, assertDomNode, assertEqual, assertGreaterThan, isDomNode} from '../util/assert';
+
 import {attachPatchData} from './context_discovery';
 import {allocExpando, createNodeAtIndex, elementAttribute, load, textBinding} from './instructions';
 import {LContainer, NATIVE} from './interfaces/container';
@@ -676,6 +677,7 @@ function createDynamicNodeAtIndex(
     index: number, type: TNodeType, native: RElement | RText | null,
     name: string | null): TElementNode|TIcuContainerNode {
   const previousOrParentTNode = getPreviousOrParentTNode();
+  ngDevMode && assertDefined(previousOrParentTNode, 'parent TNode required');
   const tNode = createNodeAtIndex(index, type as any, native, name, null);
 
   // We are creating a dynamic node, the previous tNode might not be pointing at this node.
@@ -885,7 +887,8 @@ function readUpdateOpCodes(
 function removeNode(index: number, viewData: LView) {
   const removedPhTNode = getTNode(index, viewData);
   const removedPhRNode = getNativeByIndex(index, viewData);
-  if (removedPhRNode) {
+  if (isDomNode(removedPhRNode)) {
+    ngDevMode && assertDomNode(removedPhRNode);
     nativeRemoveNode(viewData[RENDERER], removedPhRNode);
   }
 
