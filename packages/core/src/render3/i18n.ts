@@ -19,7 +19,7 @@ import {RComment, RElement, RText} from './interfaces/renderer';
 import {SanitizerFn} from './interfaces/sanitization';
 import {StylingContext} from './interfaces/styling';
 import {BINDING_INDEX, HEADER_OFFSET, LView, RENDERER, TVIEW, TView, T_HOST} from './interfaces/view';
-import {appendChild, createTextNode, nativeRemoveNode} from './node_manipulation';
+import {createTextNode, getNativeAnchorNode, insertChildBefore, nativeRemoveNode} from './node_manipulation';
 import {getIsParent, getLView, getPreviousOrParentTNode, setIsParent, setPreviousOrParentTNode} from './state';
 import {NO_CHANGE} from './tokens';
 import {addAllToArray} from './util/array_utils';
@@ -497,12 +497,14 @@ function appendI18nNode(tNode: TNode, parentTNode: TNode, previousTNode: TNode |
     cursor = cursor.next;
   }
 
-  appendChild(getNativeByTNode(tNode, viewData), tNode, viewData);
+  const anchorNode = getNativeAnchorNode(parentTNode, viewData);
+
+  insertChildBefore(getNativeByTNode(tNode, viewData), tNode, viewData, anchorNode);
 
   const slotValue = viewData[tNode.index];
   if (tNode.type !== TNodeType.Container && isLContainer(slotValue)) {
     // Nodes that inject ViewContainerRef also have a comment node that should be moved
-    appendChild(slotValue[NATIVE], tNode, viewData);
+    insertChildBefore(slotValue[NATIVE], tNode, viewData, anchorNode);
   }
   return tNode;
 }
