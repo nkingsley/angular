@@ -103,7 +103,7 @@ export declare function getLocaleNumberFormat(locale: string, type: NumberFormat
 
 export declare function getLocaleNumberSymbol(locale: string, symbol: NumberSymbol): string;
 
-export declare function getLocalePluralCase(locale: string): (value: number) => Plural;
+export declare const getLocalePluralCase: (value: string) => (value: number) => Plural;
 
 export declare function getLocaleTimeFormat(locale: string, width: FormatWidth): string;
 
@@ -270,10 +270,10 @@ export declare class NgIfContext {
 }
 
 export declare class NgLocaleLocalization extends NgLocalization {
-    /** @deprecated */ protected deprecatedPluralFn?: ((locale: string, value: string | number) => Plural) | null | undefined;
+    /** @deprecated */ protected deprecatedPluralFn?: ((locale: string, value: string | number) => import("@angular/common").Plural) | null | undefined;
     protected locale: string;
     constructor(locale: string,
-    /** @deprecated */ deprecatedPluralFn?: ((locale: string, value: string | number) => Plural) | null | undefined);
+    /** @deprecated */ deprecatedPluralFn?: ((locale: string, value: string | number) => import("@angular/common").Plural) | null | undefined);
     getPluralCategory(value: any, locale?: string): string;
 }
 

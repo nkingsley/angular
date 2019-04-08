@@ -7,7 +7,7 @@
  */
 
 import {ɵLocaleDataIndex as LocaleDataIndex, ɵfindLocaleData as findLocaleData, ɵgetLocalePluralCase, ɵPlural as core_Plural} from '@angular/core';
-import {Plural as common_Plural} from './core_types_recreated';
+import {Plural as common_Plural} from './core_type_declarations';
 import {CURRENCIES_EN, CurrenciesSymbols} from './currencies';
 import {CurrencyIndex, ExtraLocaleDataIndex} from './locale_data';
 
@@ -34,6 +34,7 @@ export enum NumberFormatStyle {
  *
  * @publicApi
  */
+export type Plural = common_Plural;
 export const Plural:typeof common_Plural = core_Plural;
 // The above assignment verifies that common_Plural and core_Plural have the same shape
 
@@ -490,7 +491,7 @@ function getLocaleCurrencies(locale: string): {[code: string]: CurrenciesSymbols
  *
  * @publicApi
  */
-export const getLocalePluralCase: (value: number) => Plural = ɵgetLocalePluralCase;
+export const getLocalePluralCase: (value: string) => (value: number) => Plural = ɵgetLocalePluralCase;
 
 function checkFullData(data: any) {
   if (!data[LocaleDataIndex.ExtraData]) {
