@@ -6,7 +6,8 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {ɵLocaleDataIndex as LocaleDataIndex, ɵfindLocaleData as findLocaleData, ɵgetLocalePluralCase} from '@angular/core';
+import {ɵLocaleDataIndex as LocaleDataIndex, ɵfindLocaleData as findLocaleData, ɵgetLocalePluralCase, ɵPlural as core_Plural} from '@angular/core';
+import {Plural as common_Plural} from './core_types_recreated';
 import {CURRENCIES_EN, CurrenciesSymbols} from './currencies';
 import {CurrencyIndex, ExtraLocaleDataIndex} from './locale_data';
 
@@ -33,14 +34,8 @@ export enum NumberFormatStyle {
  *
  * @publicApi
  */
-export enum Plural {
-  Zero = 0,
-  One = 1,
-  Two = 2,
-  Few = 3,
-  Many = 4,
-  Other = 5,
-}
+export const Plural:typeof common_Plural = core_Plural;
+// The above assignment verifies that common_Plural and core_Plural have the same shape
 
 /**
  * Context-dependant translation forms for strings.
@@ -495,9 +490,7 @@ function getLocaleCurrencies(locale: string): {[code: string]: CurrenciesSymbols
  *
  * @publicApi
  */
-export function getLocalePluralCase(locale: string): (value: number) => Plural {
-  return ɵgetLocalePluralCase(locale);
-}
+export const getLocalePluralCase: (value: number) => Plural = ɵgetLocalePluralCase;
 
 function checkFullData(data: any) {
   if (!data[LocaleDataIndex.ExtraData]) {
