@@ -19,10 +19,12 @@ import {
   NgModuleFactory,
   NgZone,
   Injector,
+  LOCALE_ID,
   Pipe,
   PlatformRef,
   Provider,
   Type,
+  ɵDEFAULT_LOCALE_ID as DEFAULT_LOCALE_ID,
   ɵcompileComponent as compileComponent,
   ɵcompileDirective as compileDirective,
   ɵcompileNgModuleDefs as compileNgModuleDefs,
@@ -41,12 +43,13 @@ import {
   ɵNgModuleType as NgModuleType,
   ɵDirectiveDef as DirectiveDef,
   ɵpatchComponentDefWithScope as patchComponentDefWithScope,
+  ɵsetLocaleId as setLocaleId,
   ɵtransitiveScopesFor as transitiveScopesFor,
 } from '@angular/core';
 // clang-format on
 import {ResourceLoader} from '@angular/compiler';
 
-import {clearResolutionOfComponentResourcesQueue, restoreComponentResolutionQueue, resolveComponentResources, isComponentDefPendingResolution} from '../../src/metadata/resource_loading';
+import {clearResolutionOfComponentResourcesQueue, isComponentDefPendingResolution, resolveComponentResources, restoreComponentResolutionQueue} from '../../src/metadata/resource_loading';
 
 import {MetadataOverride} from './metadata_override';
 import {ComponentResolver, DirectiveResolver, NgModuleResolver, PipeResolver, Resolver} from './resolvers';
@@ -264,6 +267,9 @@ export class R3TestBedCompiler {
     const parentInjector = this.platform.injector;
     this.testModuleRef = new NgModuleRef(this.testModuleType, parentInjector);
 
+    // Set the locale ID, it can be overridden for the tests
+    const localeId = this.testModuleRef.injector.get(LOCALE_ID, DEFAULT_LOCALE_ID);
+    setLocaleId(localeId);
 
     // ApplicationInitStatus.runInitializers() is marked @internal to core.
     // Cast it to any before accessing it.
@@ -538,6 +544,8 @@ export class R3TestBedCompiler {
     this.initialNgDefs.clear();
     this.moduleProvidersOverridden.clear();
     this.restoreComponentResolutionQueue();
+    // Restore the locale ID to the default value, this shouldn't be necessary but we never know
+    setLocaleId(DEFAULT_LOCALE_ID);
   }
 
   private compileTestModule(): void {
