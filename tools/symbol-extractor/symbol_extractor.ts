@@ -96,7 +96,7 @@ export class SymbolExtractor {
   }
 
   expect(expectedSymbols: (string|Symbol)[]) {
-    expect(SymbolExtractor.diff(this.actual, expectedSymbols)).toEqual({});
+    expectGoldFile(SymbolExtractor.diff(this.actual, expectedSymbols)).toEqual({});
   }
 
   compareAndPrintError(goldenFilePath: string, expected: string|((Symbol | string)[])): boolean {

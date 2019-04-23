@@ -32,7 +32,7 @@ describe('scenarios', () => {
           fs.readFileSync(path.join(symbolExtractorSpecDir, jsonFile)).toString();
       const symbols = SymbolExtractor.parse(testName, jsFileContent);
       const diff = SymbolExtractor.diff(symbols, jsonFileContent);
-      expect(diff).toEqual({});
+      expectGoldFile(diff).toEqual({});
     });
   }
 });
