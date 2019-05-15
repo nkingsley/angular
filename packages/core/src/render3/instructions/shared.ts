@@ -259,9 +259,9 @@ export function createNodeAtIndex(
   lView[adjustedIndex] = native;
 
   const previousOrParentTNode = getPreviousOrParentTNode();
-  const isParent = getIsParent();
   let tNode = tView.data[adjustedIndex] as TNode;
   if (tNode == null) {
+    const isParent = getIsParent();
     const parent =
         isParent ? previousOrParentTNode : previousOrParentTNode && previousOrParentTNode.parent;
 
@@ -271,12 +271,16 @@ export function createNodeAtIndex(
     const tParentNode = parentInSameView ? parent as TElementNode | TContainerNode : null;
 
     tNode = tView.data[adjustedIndex] = createTNode(tParentNode, type, adjustedIndex, name, attrs);
+    if (index === 0) {
+      tView.firstChild = tNode;
+  }
   }
 
-  // Now link ourselves into the tree.
-  // We need this even if tNode exists, otherwise we might end up pointing to unexisting tNodes when
-  // we use i18n (especially with ICU expressions that update the DOM during the update phase).
+  // Now link ourselves into the tree. We need this even if tNode exists, otherwise we might end up
+  // pointing to nonexisting tNodes when we use i18n (especially with ICU expressions that update
+  // the DOM during the update phase).
   if (previousOrParentTNode) {
+    const isParent = getIsParent();
     if (isParent && previousOrParentTNode.child == null &&
         (tNode.parent !== null || previousOrParentTNode.type === TNodeType.View)) {
       // We are in the same view, which means we are adding content node to the parent view.
@@ -284,10 +288,6 @@ export function createNodeAtIndex(
     } else if (!isParent) {
       previousOrParentTNode.next = tNode;
     }
-  }
-
-  if (tView.firstChild == null) {
-    tView.firstChild = tNode;
   }
 
   setPreviousOrParentTNode(tNode);
