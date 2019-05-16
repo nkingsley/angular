@@ -253,10 +253,9 @@ export function createNodeAtIndex(
   const lView = getLView();
   const tView = lView[TVIEW];
   const adjustedIndex = index + HEADER_OFFSET;
-
-  const previousOrParentTNode = getPreviousOrParentTNode();
   let tNode = tView.data[adjustedIndex] as TNode;
   if (tNode == null) {
+    const previousOrParentTNode = getPreviousOrParentTNode();
     const isParent = getIsParent();
     const parent =
         isParent ? previousOrParentTNode : previousOrParentTNode && previousOrParentTNode.parent;
@@ -270,21 +269,22 @@ export function createNodeAtIndex(
     if (index === 0) {
       tView.firstChild = tNode;
     }
-  }
 
-  // Now link ourselves into the tree. We need this even if tNode exists, otherwise we might end up
-  // pointing to nonexisting tNodes when we use i18n (especially with ICU expressions that update
-  // the DOM during the update phase).
-  if (previousOrParentTNode) {
-    const isParent = getIsParent();
-    if (isParent && previousOrParentTNode.child == null &&
-        (tNode.parent !== null || previousOrParentTNode.type === TNodeType.View)) {
-      // We are in the same view, which means we are adding content node to the parent view.
-      previousOrParentTNode.child = tNode;
-    } else if (!isParent) {
-      previousOrParentTNode.next = tNode;
+    // Now link ourselves into the tree. We need this even if tNode exists, otherwise we might end
+    // up pointing to nonexisting tNodes when we use i18n (especially with ICU expressions that
+    // update the DOM during the update phase).
+    if (previousOrParentTNode) {
+      const isParent = getIsParent();
+      if (isParent && previousOrParentTNode.child == null &&
+          (tNode.parent !== null || previousOrParentTNode.type === TNodeType.View)) {
+        // We are in the same view, which means we are adding content node to the parent view.
+        previousOrParentTNode.child = tNode;
+      } else if (!isParent) {
+        previousOrParentTNode.next = tNode;
+      }
     }
   }
+
 
   setPreviousOrParentTNode(tNode, true);
   return tNode as TElementNode & TViewNode & TContainerNode & TElementContainerNode &
