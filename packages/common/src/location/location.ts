@@ -48,7 +48,7 @@ export interface PopStateEvent {
  *
  * @publicApi
  */
-@Injectable()
+@Injectable({providedIn: 'root'})
 export class Location {
   /** @internal */
   _subject: EventEmitter<any> = new EventEmitter();

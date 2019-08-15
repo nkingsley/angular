@@ -6,12 +6,12 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
+import {ɵgetDOM as getDOM} from '@angular/common';
 import {ResourceLoader, UrlResolver} from '@angular/compiler';
 import {MockResourceLoader} from '@angular/compiler/testing';
 import {AfterContentChecked, AfterContentInit, AfterViewChecked, AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ContentChild, DebugElement, Directive, DoCheck, EventEmitter, HostBinding, Inject, Injectable, Input, OnChanges, OnDestroy, OnInit, Output, Pipe, PipeTransform, Provider, RenderComponentType, Renderer, RendererFactory2, RendererType2, RootRenderer, SimpleChange, SimpleChanges, TemplateRef, Type, ViewChild, ViewContainerRef, WrappedValue} from '@angular/core';
 import {ComponentFixture, TestBed, fakeAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser/src/dom/debug/by';
-import {getDOM} from '@angular/platform-browser/src/dom/dom_adapter';
 import {expect} from '@angular/platform-browser/testing/src/matchers';
 import {ivyEnabled, modifiedInIvy, onlyInIvy} from '@angular/private/testing';
 

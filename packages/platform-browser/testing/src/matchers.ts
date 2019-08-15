@@ -7,11 +7,10 @@
  */
 
 
+import {ɵgetDOM as getDOM} from '@angular/common';
 import {Type, ɵglobal as global} from '@angular/core';
 import {ComponentFixture} from '@angular/core/testing';
-import {By, ɵgetDOM as getDOM} from '@angular/platform-browser';
-
-
+import {By} from '@angular/platform-browser';
 
 /**
  * Jasmine matchers that check Angular specific conditions.

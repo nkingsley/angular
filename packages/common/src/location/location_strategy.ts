@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {InjectionToken} from '@angular/core';
+import {Injectable, InjectionToken} from '@angular/core';
 import {LocationChangeListener} from './platform_location';
 
 /**
@@ -26,6 +26,10 @@ import {LocationChangeListener} from './platform_location';
  *
  * @publicApi
  */
+@Injectable({
+  providedIn: 'root',
+  useFactory: provideLocationStrategy,
+})
 export abstract class LocationStrategy {
   abstract path(includeHash?: boolean): string;
   abstract prepareExternalUrl(internal: string): string;
@@ -35,6 +39,13 @@ export abstract class LocationStrategy {
   abstract back(): void;
   abstract onPopState(fn: LocationChangeListener): void;
   abstract getBaseHref(): string;
+}
+
+export function provideLocationStrategy() {
+  throw new Error(
+      ngDevMode ?
+          `'LocationStrategy' needs to be configured. Did you forget to include 'LocationUpgradeModule' or 'RouterModule'?` :
+          `Configure 'LocationStrategy'`);
 }
 
 

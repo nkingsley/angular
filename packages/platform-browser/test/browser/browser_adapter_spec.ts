@@ -6,8 +6,8 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
+import {ɵgetDOM as getDOM} from '@angular/common';
 import {describe, expect, it} from '@angular/core/testing/src/testing_internal';
-import {getDOM} from '@angular/platform-browser/src/dom/dom_adapter';
 
 
 {

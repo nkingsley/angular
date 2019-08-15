@@ -10,7 +10,7 @@ import {Type} from '@angular/core';
 
 let _DOM: DomAdapter = null !;
 
-export function getDOM() {
+export function getDOM(): DomAdapter {
   return _DOM;
 }
 
@@ -146,7 +146,8 @@ export abstract class DomAdapter {
   abstract supportsNativeShadowDOM(): boolean;
   abstract getGlobalEventTarget(doc: Document, target: string): any;
   abstract getHistory(): History;
-  abstract getLocation(): Location;
+  abstract getLocation():
+      any; /** This is the ambient Location definition, NOT Location from @angular/common.  */
   abstract getBaseHref(doc: Document): string|null;
   abstract resetBaseElement(): void;
   abstract getUserAgent(): string;
