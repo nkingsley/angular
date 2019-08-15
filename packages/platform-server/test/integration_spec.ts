@@ -453,18 +453,18 @@ class HiddenModule {
          });
        }));
 
-    it('should get base href from document', async(() => {
-         const platform = platformDynamicServer([{
-           provide: INITIAL_CONFIG,
-           useValue:
-               {document: '<html><head><base href="/"></head><body><app></app></body></html>'}
-         }]);
-         platform.bootstrapModule(ExampleModule).then((moduleRef) => {
-           const location = moduleRef.injector.get(PlatformLocation);
-           expect(location.getBaseHrefFromDOM()).toEqual('/');
-           platform.destroy();
-         });
-       }));
+    fit('should get base href from document', async(() => {
+          const platform = platformDynamicServer([{
+            provide: INITIAL_CONFIG,
+            useValue:
+                {document: '<html><head><base href="/"></head><body><app></app></body></html>'}
+          }]);
+          platform.bootstrapModule(ExampleModule).then((moduleRef) => {
+            const location = moduleRef.injector.get(PlatformLocation);
+            expect(location.getBaseHrefFromDOM()).toEqual('/');
+            platform.destroy();
+          });
+        }));
 
     it('adds styles with ng-transition attribute', async(() => {
          const platform = platformDynamicServer([{

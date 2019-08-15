@@ -59,7 +59,7 @@ export function moduleDef(providers: NgModuleProviderDef[]): NgModuleDefinition 
     providersByKey,
     providers,
     modules,
-    isRoot,
+    providedIn: isRoot,
   };
 }
 
@@ -134,7 +134,7 @@ function moduleTransitivelyPresent(ngModule: NgModuleData, scope: any): boolean 
 
 function targetsModule(ngModule: NgModuleData, def: ɵɵInjectableDef<any>): boolean {
   return def.providedIn != null && (moduleTransitivelyPresent(ngModule, def.providedIn) ||
-                                    def.providedIn === 'root' && ngModule._def.isRoot);
+                                    def.providedIn === 'root' && ngModule._def.providedIn);
 }
 
 function _createProviderInstance(ngModule: NgModuleData, providerDef: NgModuleProviderDef): any {

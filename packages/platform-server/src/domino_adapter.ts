@@ -11,6 +11,7 @@ import {ɵBrowserDomAdapter as BrowserDomAdapter} from '@angular/platform-browse
 import {ɵsetRootDomAdapter as setRootDomAdapter} from '@angular/common';
 
 function _notImplemented(methodName: string) {
+  debugger;
   return new Error('This method is not implemented in DominoAdapter: ' + methodName);
 }
 

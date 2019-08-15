@@ -133,7 +133,7 @@ function makeFactoryProviders(
 function makeModule(modules: any[], providers: NgModuleProviderDef[]): NgModuleDefinition {
   const providersByKey: {[key: string]: NgModuleProviderDef} = {};
   providers.forEach(provider => providersByKey[tokenKey(provider.token)] = provider);
-  return {factory: null, providers, providersByKey, modules, isRoot: true};
+  return {factory: null, providers, providersByKey, modules, providedIn: true};
 }
 
 describe('NgModuleRef_ injector', () => {
@@ -275,17 +275,17 @@ describe('NgModuleRef_ injector', () => {
 
     it('sets isRoot to `true` when APP_ROOT is `true`', () => {
       const def = moduleDef([createProvider(APP_ROOT, true)]);
-      expect(def.isRoot).toBe(true);
+      expect(def.providedIn).toBe(true);
     });
 
     it('sets isRoot to `false` when APP_ROOT is absent', () => {
       const def = moduleDef([]);
-      expect(def.isRoot).toBe(false);
+      expect(def.providedIn).toBe(false);
     });
 
     it('sets isRoot to `false` when APP_ROOT is `false`', () => {
       const def = moduleDef([createProvider(APP_ROOT, false)]);
-      expect(def.isRoot).toBe(false);
+      expect(def.providedIn).toBe(false);
     });
   });
 });
