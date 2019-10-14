@@ -5,6 +5,8 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
+import {enterView, leaveView} from '@angular/core/src/render3/state';
+
 import {addToViewTree, createLContainer, createLView, createTNode, createTView, getOrCreateTNode, renderView} from '../../../src/render3/instructions/shared';
 import {ComponentTemplate} from '../../../src/render3/interfaces/definition';
 import {TAttributes, TNodeType, TViewNode} from '../../../src/render3/interfaces/node';
@@ -26,6 +28,7 @@ export function setupRootViewWithEmbeddedViews(
     templateFn: ComponentTemplate<any>| null, decls: number, vars: number, noOfViews: number,
     embeddedViewContext: any = {}, consts: TAttributes[] | null = null): LView {
   // Create a root view with a container
+  enterView(null !, null);
   const rootTView = createTView(-1, null, 1, 0, null, null, null, null, consts);
   const tContainerNode = getOrCreateTNode(rootTView, null, 0, TNodeType.Container, null, null);
   const rootLView = createLView(
@@ -49,6 +52,7 @@ export function setupRootViewWithEmbeddedViews(
     renderView(embeddedLView, embeddedTView, null);
     insertView(embeddedLView, lContainer, i);
   }
+  leaveView();
 
   // run in the creation mode to set flags etc.
   renderView(rootLView, rootTView, null);

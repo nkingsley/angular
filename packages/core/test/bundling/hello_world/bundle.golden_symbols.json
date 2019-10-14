@@ -153,6 +153,9 @@
     "name": "callHooks"
   },
   {
+    "name": "createLFrame"
+  },
+  {
     "name": "createLView"
   },
   {
@@ -187,6 +190,9 @@
   },
   {
     "name": "domRendererFactory3"
+  },
+  {
+    "name": "enterView"
   },
   {
     "name": "executeCheckHooks"
@@ -351,13 +357,16 @@
     "name": "isRootView"
   },
   {
+    "name": "leaveView"
+  },
+  {
+    "name": "leaveViewProcessExit"
+  },
+  {
     "name": "locateHostElement"
   },
   {
     "name": "markAsComponentHost"
-  },
-  {
-    "name": "namespaceHTMLInternal"
   },
   {
     "name": "nativeAppendChild"
@@ -411,16 +420,10 @@
     "name": "renderView"
   },
   {
-    "name": "resetComponentState"
-  },
-  {
     "name": "resetPreOrderHookFlags"
   },
   {
     "name": "selectIndexInternal"
-  },
-  {
-    "name": "selectView"
   },
   {
     "name": "setActiveHostElement"
@@ -433,9 +436,6 @@
   },
   {
     "name": "setCurrentQueryIndex"
-  },
-  {
-    "name": "setCurrentStyleSanitizer"
   },
   {
     "name": "setHostBindings"
@@ -454,9 +454,6 @@
   },
   {
     "name": "setSelectedIndex"
-  },
-  {
-    "name": "setTNodeAndViewData"
   },
   {
     "name": "stringifyForError"
