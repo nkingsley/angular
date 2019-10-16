@@ -164,6 +164,10 @@ export class ComponentFactory<T> extends viewEngine_ComponentFactory<T> {
         rootViewInjector);
 
     // rootView is the parent when bootstrapping
+    // TODO(misko): it looks like we are entering view here but we don't really need to as
+    // `renderView` does that. However as the code is written it is needed because
+    // `createRootComponentView` and `createRootComponent` both read global state. Fixing those
+    // issues would allow us to drop this.
     enterView(rootLView, null);
 
     let component: T;

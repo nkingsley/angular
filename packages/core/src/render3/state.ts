@@ -23,7 +23,7 @@ interface LFrame {
    * Parent LFrame.
    *
    * This is needed when `leaveView` is called to restore the previous state.
- */
+   */
   parent: LFrame|null;
 
   /**
@@ -313,8 +313,6 @@ export function setActiveHostElement(elementIndex: number | null = null) {
 
 export function executeElementExitFn() {
   instructionState.elementExitFn !();
-  // TODO (matsko|misko): remove this unassignment once the state management of
-  //                      global variables are better managed.
   instructionState.lFrame.selectedIndex &= ~ActiveElementFlags.RunExitFn;
 }
 
@@ -424,6 +422,7 @@ export function setIsParent(): void {
 }
 
 export function getContextLView(): LView {
+  // TODO(misko): I don't think `contextLView` should be in LFrame. Move it to `instructionState`
   return instructionState.lFrame.contextLView;
 }
 
