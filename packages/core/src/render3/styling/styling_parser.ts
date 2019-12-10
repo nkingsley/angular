@@ -10,7 +10,7 @@ import {CharCode} from '../../util/char_code';
 
 
 /**
- * Consumes all of the whitespace characters.
+ * Returns index of next non-whitespace character.
  *
  * @param text Text to scan
  * @param startIndex Starting index of character where the scan should start.
@@ -26,12 +26,12 @@ export function consumeWhitespace(text: string, startIndex: number, endIndex: nu
 }
 
 /**
- * Consumes all of the non-whitespace characters which are class name.
+ * Returns index of last char in class token.
  *
  * @param text Text to scan
  * @param startIndex Starting index of character where the scan should start.
  * @param endIndex Ending index of character where the scan should end.
- * @returns Index of next non-whitespace character (May be the same as `start` if no non-whitespace
+ * @returns last char in class token (May be the same as `start` if no non-whitespace
  *          at that location, or if `startIndex === endIndex`.)
  */
 export function consumeClassToken(text: string, startIndex: number, endIndex: number): number {
@@ -42,7 +42,7 @@ export function consumeClassToken(text: string, startIndex: number, endIndex: nu
 }
 
 /**
- * Consumes all of the characters belonging to style token.
+ * Consumes all of the characters belonging to style key and token.
  *
  * @param text Text to scan
  * @param startIndex Starting index of character where the scan should start.

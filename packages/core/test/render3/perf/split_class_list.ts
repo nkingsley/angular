@@ -7,7 +7,7 @@
  */
 
 import {processClassToken, splitClassList} from '@angular/core/src/render3/styling/class_differ';
-import {ArrayMap} from '@angular/core/src/util/array_utils';
+import {KeyValueArray} from '@angular/core/src/util/array_utils';
 
 import {createBenchmark} from './micro_bench';
 
@@ -23,7 +23,7 @@ for (let i = 0; i < LETTERS.length; i++) {
 }
 
 let index = 0;
-let changes: ArrayMap<boolean|null> = [] as any;
+let changes: KeyValueArray<boolean|null> = [] as any;
 let parts: string[] = [];
 while (splitTime()) {
   changes = clearArray(changes);

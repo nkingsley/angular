@@ -6,7 +6,7 @@
 * found in the LICENSE file at https://angular.io/license
 */
 
-import {ArrayMap} from '../../util/array_utils';
+import {KeyValueArray} from '../../util/array_utils';
 import {ProceduralRenderer3, RElement, Renderer3, isProceduralRenderer} from '../interfaces/renderer';
 import {computeClassChanges} from './class_differ';
 import {computeStyleChanges} from './style_differ';

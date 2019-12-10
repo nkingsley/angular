@@ -6,7 +6,7 @@
 * found in the LICENSE file at https://angular.io/license
 */
 
-import {ArrayMap, arrayInsert2, arrayMapIndexOf, arrayMapSet} from '../../util/array_utils';
+import {KeyValueArray, arrayInsert2, keyValueArrayIndexOf, keyValueArraySet} from '../../util/array_utils';
 import {CharCode} from '../../util/char_code';
 import {consumeClassToken, consumeWhitespace} from './styling_parser';
 
@@ -17,8 +17,7 @@ import {consumeClassToken, consumeWhitespace} from './styling_parser';
  *  `oldValue` => `"A B C"`
  *  `newValue` => `"A C D"`
  * will result in:
- * `removals = ['B'],
- * `additions = ['D']`
+ * `['A', null, 'B', false, 'C', null, 'D', true],
  *
  * @param oldValue Previous class-list string.
  * @param newValue New class-list string.
@@ -27,8 +26,9 @@ import {consumeClassToken, consumeWhitespace} from './styling_parser';
  *        - `false: Class needs to be removed from the element.
  *        - `null`: No change (leave class as is.)
  */
-export function computeClassChanges(oldValue: string, newValue: string): ArrayMap<boolean|null> {
-  const changes: ArrayMap<boolean|null> = [] as any;
+export function computeClassChanges(
+    oldValue: string, newValue: string): KeyValueArray<boolean|null> {
+  const changes: KeyValueArray<boolean|null> = [] as any;
   splitClassList(oldValue, changes, false);
   splitClassList(newValue, changes, true);
   return changes;
@@ -44,7 +44,7 @@ export function computeClassChanges(oldValue: string, newValue: string): ArrayMa
  * @param isNewValue `true` if we are processing new list.
  */
 export function splitClassList(
-    text: string, changes: ArrayMap<boolean|null>, isNewValue: boolean): void {
+    text: string, changes: KeyValueArray<boolean|null>, isNewValue: boolean): void {
   const end = text.length;
   let index = 0;
   while (index < end) {
@@ -73,10 +73,10 @@ export function splitClassList(
  *          change.) If no token exist than the new token value is `true` (add it.)
  */
 export function processClassToken(
-    changes: ArrayMap<boolean|null>, token: string, isNewValue: boolean) {
+    changes: KeyValueArray<boolean|null>, token: string, isNewValue: boolean) {
   if (isNewValue) {
     // This code path is executed when we are iterating over new values.
-    const index = arrayMapIndexOf(changes, token);
+    const index = keyValueArrayIndexOf(changes, token);
     if (index >= 0) {
       const existingTokenValue = changes[index | 1];
       if (existingTokenValue === false) {
@@ -91,7 +91,7 @@ export function processClassToken(
   } else {
     // This code path is executed when we are iterating over previous values.
     // This means that we store the tokens in `changes` with `false` (removals).
-    arrayMapSet(changes, token, false);
+    keyValueArraySet(changes, token, false);
   }
 }
 

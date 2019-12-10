@@ -229,3 +229,16 @@ ng_benchmark(
     name = "split_class_list",
     bundle = ":split_class_list_lib",
 )
+
+ng_rollup_bundle(
+    name = "key_value_array_lib",
+    entry_point = ":key_value_array.ts",
+    deps = [
+        ":perf_lib",
+    ],
+)
+
+ng_benchmark(
+    name = "key_value_array",
+    bundle = ":key_value_array_lib",
+)

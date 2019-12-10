@@ -67,6 +67,20 @@ describe('styling reconcile', () => {
         writeAndReconcileStyle(renderer, element, 'width: 100px; height: 100px;', '');
         expect(element.style.cssText).toEqual('color: red;');
       });
+
+      it('should support duplicate styles', () => {
+        element.style.cssText = 'color: red;';
+        writeAndReconcileStyle(renderer, element, '', 'width: 100px; width: 200px;');
+        expect(element.style.cssText).toEqual('color: red; width: 200px;');
+
+        writeAndReconcileStyle(
+            renderer, element, 'width: 100px; width: 200px;',
+            'width: 100px; width: 200px; height: 100px;');
+        expect(element.style.cssText).toEqual('color: red; width: 200px; height: 100px;');
+
+        writeAndReconcileStyle(renderer, element, 'width: 100px; height: 100px;', '');
+        expect(element.style.cssText).toEqual('color: red;');
+      });
     });
   });
 });

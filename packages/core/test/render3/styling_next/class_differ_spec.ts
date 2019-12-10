@@ -6,14 +6,14 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {ArrayMap} from '@angular/core/src/util/array_utils';
+import {KeyValueArray} from '@angular/core/src/util/array_utils';
 
 import {computeClassChanges, removeClass, splitClassList} from '../../../src/render3/styling/class_differ';
 
 describe('class differ', () => {
   describe('computeClassChanges', () => {
     function expectComputeClassChanges(oldValue: string, newValue: string) {
-      const changes: ArrayMap<boolean|null> = computeClassChanges(oldValue, newValue);
+      const changes: KeyValueArray<boolean|null> = computeClassChanges(oldValue, newValue);
       return expect(changes);
     }
 
@@ -50,7 +50,7 @@ describe('class differ', () => {
 
   describe('splitClassList', () => {
     function expectSplitClassList(text: string) {
-      const changes: ArrayMap<boolean|null> = [] as any;
+      const changes: KeyValueArray<boolean|null> = [] as any;
       splitClassList(text, changes, false);
       return expect(changes);
     }

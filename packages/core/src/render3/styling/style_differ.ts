@@ -6,7 +6,7 @@
 * found in the LICENSE file at https://angular.io/license
 */
 
-import {ArrayMap3, arrayInsert4, arrayMap3IndexOf} from '../../util/array_utils';
+import {Key3ValueArray, arrayInsert4, key3ValueArrayIndexOf} from '../../util/array_utils';
 import {consumeStyleKey, consumeStyleKeySeparator, consumeStyleValue, consumeStyleValueSeparator, consumeWhitespace} from './styling_parser';
 
 
@@ -21,7 +21,7 @@ import {consumeStyleKey, consumeStyleKeySeparator, consumeStyleValue, consumeSty
  *   - multiple of 4 + 2: `string|null` key original value (or null if it was added).
  *   - multiple of 4 + 3: `string|null` key new value (or null if it was removed).
  */
-export type StyleChangesArrayMap = ArrayMap3<string|null, string|null, boolean|null>;
+export type StyleChangesArrayMap = Key3ValueArray<string|null, string|null, boolean|null>;
 
 /**
  * See: `StyleChangesArrayMap`
@@ -62,10 +62,9 @@ export function computeStyleChanges(oldValue: string, newValue: string): StyleCh
 
 /**
  * Splits the style list into array, ignoring whitespace and add it to corresponding categories
- * (addition/removals).
+ * changes.
  *
  * @param text Style list to split
- * @param parts Where the parts will be stored
  * @param changes Where changes will be stored.
  * @param isNewValue `true` if parsing new value (effects how values get added to `changes`)
  */
@@ -107,7 +106,7 @@ export function parseKeyValue(
  */
 function processStyleKeyValue(
     changes: StyleChangesArrayMap, key: string, value: string, isNewValue: boolean): void {
-  const index = arrayMap3IndexOf(changes, key);
+  const index = key3ValueArrayIndexOf(changes, key);
   if (isNewValue) {
     // This code path is executed when we are iteration over new values.
     if (index < 0) {
