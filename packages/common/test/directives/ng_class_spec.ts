@@ -7,6 +7,7 @@
  */
 
 import {Component} from '@angular/core';
+import {ivyEnabled} from '@angular/core/src/ivy_switch';
 import {ComponentFixture, TestBed, async} from '@angular/core/testing';
 
 {
@@ -346,7 +347,12 @@ import {ComponentFixture, TestBed, async} from '@angular/core/testing';
            detectChangesAndExpectClassName('init foo bar');
 
            cmp.strExpr = 'baz';
-           detectChangesAndExpectClassName('init bar baz foo');
+           detectChangesAndExpectClassName(
+               'init bar baz' + (ivyEnabled ?
+                                     '' :    // This is correct behavior because there is no `foo`.
+                                     ' foo'  // This seems to be a bug in VE where `foo` gets
+                                             // persisted even though it was replaced by `baz`.
+                                 ));
 
            cmp.objExpr = null;
            detectChangesAndExpectClassName('init baz');
@@ -358,8 +364,7 @@ import {ComponentFixture, TestBed, async} from '@angular/core/testing';
 @Component({selector: 'test-cmp', template: ''})
 class TestComponent {
   condition: boolean = true;
-  // TODO(issue/24571): remove '!'.
-  items !: any[];
+  items: any[]|undefined;
   arrExpr: string[] = ['foo'];
   setExpr: Set<string> = new Set<string>();
   objExpr: {[klass: string]: any}|null = {'foo': true, 'bar': false};
