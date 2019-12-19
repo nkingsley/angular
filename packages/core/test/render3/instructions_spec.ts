@@ -166,6 +166,9 @@ describe('instructions', () => {
         ɵɵstyleMap({'background-color': 'red'});
       }, 1, 0, null, null, null, undefined, attrs);
       fixture.update();
+      // I think writing asserts in form of
+      // expect(element.style.getPropertyValue('background-color')).toEqual(...)
+      // Would be safer (clearer to intent) than regexp.
       expect(fixture.html)
           .toMatch(/<div style="background-color:\s*red;\s*height:\s*10px;?"><\/div>/);
     });

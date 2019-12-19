@@ -92,7 +92,7 @@ export function stylePropInternal(
 
   const isString = typeof suffixOrSanitizer === 'string';
   const suffix = isString ? (suffixOrSanitizer as string) : null;
-  const sanitizer = isString ? null : (suffixOrSanitizer as StyleSanitizeFn);
+  const sanitizer = isString ? null : (suffixOrSanitizer as StyleSanitizeFn | null | undefined);
   const updated = stylingProp(
       tNode, firstUpdatePass, lView, bindingIndex, prop, resolveStylePropValue(value, suffix),
       false, sanitizer);
@@ -162,7 +162,7 @@ export function ɵɵclassProp(className: string, value: boolean | null): typeof 
 function stylingProp(
     tNode: TNode, firstUpdatePass: boolean, lView: LView, bindingIndex: number, prop: string,
     value: boolean | number | SafeValue | string | null | undefined | NO_CHANGE,
-    isClassBased: boolean, sanitizer: StyleSanitizeFn | null): boolean {
+    isClassBased: boolean, sanitizer: StyleSanitizeFn | null | undefined): boolean {
   let updated = false;
 
   if (sanitizer) {
@@ -350,6 +350,14 @@ function stylingMap(
   const directiveIndex = getActiveDirectiveId();
   const native = getNativeByTNode(tNode, lView) as RElement;
   const oldValue = getValue(lView, bindingIndex);
+  // See packages/core/test/bundling/todo/bundle.golden_symbols.json
+  // Notice that we are retaining styling. That is not correct, because
+  // there are no `[style]` bindings or `[style.need_sanitization_property]`.
+  // The issues is that this function gets called from `ɵɵclassMap` which
+  // is used in example but which does not require sanitization. This
+  // is why you had to update the symbols test. I think the correct solution
+  // is to pass the `ɵɵdefaultStyleSanitizer` as an argument so that only
+  // `ɵɵstyleMap` has reference to `ɵɵdefaultStyleSanitizer`.
   const sanitizer = ɵɵdefaultStyleSanitizer;
   setCurrentStyleSanitizer(ɵɵdefaultStyleSanitizer);
   const valueHasChanged = hasValueChanged(oldValue, value);
