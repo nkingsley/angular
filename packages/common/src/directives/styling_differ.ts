@@ -138,11 +138,11 @@ export class StylingDiffer<T> {
   }
 
   /**
-   * Examines the last set value to see if there was a change in data.
+   * Examines the last set value to see if there was a change in content.
    *
    * @param hasIdentityChange whether or not the last set value changed in identity or not
-   *
-   * @returns true when the value has changed (either by identity or by shape if its a collection).
+   * @returns `true` when the value has changed (either by identity or by shape if its a
+   * collection).
    */
   private _processValueChange(hasIdentityChange: boolean) {
     let valueHasChanged = hasIdentityChange;
@@ -162,10 +162,7 @@ export class StylingDiffer<T> {
             finalValue[tokens[i]] = true;
           }
         } else {
-          finalValue = '';
-          for (let i = 0; i < tokens.length; i++) {
-            finalValue += (i !== 0 ? ' ' : '') + tokens[i];
-          }
+          finalValue = tokens.join(' ');
         }
         break;
 
@@ -304,6 +301,7 @@ function setIndividualMapValue(
   map[key] = value;
 }
 
+// TODO: docs (Lets leave the code in better state than we found it.)
 function normalizeStyleKeyAndValue(key: string, value: string | null) {
   const index = key.indexOf('.');
   if (index > 0) {
@@ -316,6 +314,10 @@ function normalizeStyleKeyAndValue(key: string, value: string | null) {
   return {key, value};
 }
 
+// TODO: docs (Lets leave the code in better state than we found it.)
+// This code will run on each CD so it should be efficient.
+// Object.keys => for(let key in keys) // No array allocation
+// I don't think we need to call `arrayEqualsArray`
 function mapHasChanged(keys: string[], a: {[key: string]: any}, b: {[key: string]: any}) {
   const oldKeys = Object.keys(a);
   const newKeys = keys;
@@ -325,6 +327,10 @@ function mapHasChanged(keys: string[], a: {[key: string]: any}, b: {[key: string
     return true;
   }
 
+  // I think you could just iterate over the keys using
+  // for(let key in keys) { }
+  // and compare if the key matches `oldKeys` (since the are stable over invocations)
+  // THat should be more efficient as it does not require allocating arrays.
   for (let i = 0; i < newKeys.length; i++) {
     const key = newKeys[i];
     if (a[key] !== b[key]) {
@@ -335,10 +341,46 @@ function mapHasChanged(keys: string[], a: {[key: string]: any}, b: {[key: string
   return false;
 }
 
+/**
+ *  Compares `a` and `b` array to see if they are equivalent.
+ * @param keys 
+ * @param a 
+ * @param b 
+ * @return if `null` there is no change, otherwise a new set of keys is returned to be used for the subsequent iteration.
+ */
+function mapHasChanged_suggestion(
+    keys: string[], a: {[key: string]: any}, b: {[key: string]: any}): string[]|null {
+  let i = 0;
+  let changed = false;
+  for (let key in keys) {
+    if (key === keys[i]) {
+      if (a[key] !== b[key]) {
+        changed = true;
+      }
+    } else {
+      keys[i] = key;
+      changed = true;
+    }
+    i++;
+  }
+  // trim any remaining keys.
+  if (changed) keys.length = i;
+  return changed ? keys : null;
+}
+
+
+// TODO: docs
 function arrayEqualsArray(a: any[] | null, b: any[] | null) {
-  if (a && b) {
+  if (Array.isArray(a) && Array.isArray(b)) {
     if (a.length !== b.length) return false;
     for (let i = 0; i < a.length; i++) {
+      // I don' think this is correct.
+      // arrayEqualsArray(['a', 'b'], ['a','a']) === true even thought
+      // these are not the same arrays.
+      // Why is it necessary to do `indexOf`? Can't we just assume tha the items
+      // need to be in the same position? `indexOf` will require full array scan
+      // which may get expensive. This is called from Object.keys(a); which will
+      // have no duplicates, but it also has stable list (the order will not change)
       if (b.indexOf(a[i]) === -1) return false;
     }
     return true;
