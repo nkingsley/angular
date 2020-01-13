@@ -19,7 +19,7 @@ import {writeAndReconcileClass, writeAndReconcileStyle} from '../styling/reconci
 import {CLASS_MAP_STYLING_KEY, STYLE_MAP_STYLING_KEY, flushStyleBinding, insertTStylingBinding} from '../styling/style_binding_list';
 import {NO_CHANGE} from '../tokens';
 import {unwrapRNode} from '../util/view_utils';
-import {setDirectiveInputsWhichShadowsStyling} from './all';
+import {setDirectiveInputsWhichShadowsStyling} from './property';
 
 
 
