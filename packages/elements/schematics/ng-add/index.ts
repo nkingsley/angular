@@ -65,7 +65,7 @@ function addPolyfill(options: Schema): Rule {
       throw new SchematicsException(`polyfills for ${projectName} build target is not a string.`);
     }
 
-    const content = host.read(polyfills).toString();
+    const content = host.read(polyfills) !.toString();
     if (!content.includes('document-register-element')) {
       // Add string at the end of the file.
       const recorder = host.beginUpdate(polyfills);
