@@ -3817,6 +3817,35 @@ const DEFAULT_COMPONENT_ID = '1';
       });
     });
   });
+  describe('regression', () => {
+    fit('insertion order with animations', () => {
+      @Component({
+       template: `
+        <div id="item-container">
+           <ng-container *ngFor="let item of items">
+             <span>{{item}}</span>
+           </ng-container>
+        </div>
+       `
+      })
+      class App {
+        items: string[] = ['1', '2', '3', '4'];
+        selectedIndex: number = 0;
+        containerInnerText = '';
+        ngAfterViewChecked() {
+          this.containerInnerText = document.getElementById('item-container')!.innerText;
+        }
+      }
+      const fixture = TestBed.configureTestingModule({declarations: [App]}).createComponent(App);
+      fixture.detectChanges();
+      expect(fixture.componentInstance.containerInnerText).toEqual('1234');
+      fixture.componentInstance.items = ['5', '6', '7', '8'];
+      fixture.detectChanges();
+      console.log(fixture.nativeElement.nativeElement.outerHTML);
+      expect(fixture.componentInstance.containerInnerText).toEqual('56781234');
+      expect(document.getElementById('item-container')!.innerText).toEqual('5678');
+    });
+  });
 })();
 
 function assertHasParent(element: any, yes: boolean) {
