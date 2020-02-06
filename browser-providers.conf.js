@@ -27,7 +27,6 @@ var CIconfiguration = {
   'IE10': {unitTest: {target: 'SL', required: true}, e2e: {target: null, required: true}},
   'IE11': {unitTest: {target: 'SL', required: true}, e2e: {target: null, required: true}},
   'Edge': {unitTest: {target: 'SL', required: false}, e2e: {target: null, required: true}},
-  'Android4.4': {unitTest: {target: 'SL', required: false}, e2e: {target: null, required: true}},
   'Android5': {unitTest: {target: 'SL', required: false}, e2e: {target: null, required: true}},
   'Android6': {unitTest: {target: 'SL', required: true}, e2e: {target: null, required: true}},
   'Android7': {unitTest: {target: 'SL', required: true}, e2e: {target: null, required: true}},
