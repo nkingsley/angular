@@ -314,14 +314,6 @@ export function ɵɵdefineComponent<T>(componentDefinition: {
       inputs: null !,   // assigned in noSideEffects
       outputs: null !,  // assigned in noSideEffects
       exportAs: componentDefinition.exportAs || null,
-      onChanges: null,
-      onInit: typePrototype.ngOnInit || null,
-      doCheck: typePrototype.ngDoCheck || null,
-      afterContentInit: typePrototype.ngAfterContentInit || null,
-      afterContentChecked: typePrototype.ngAfterContentChecked || null,
-      afterViewInit: typePrototype.ngAfterViewInit || null,
-      afterViewChecked: typePrototype.ngAfterViewChecked || null,
-      onDestroy: typePrototype.ngOnDestroy || null,
       onPush: componentDefinition.changeDetection === ChangeDetectionStrategy.OnPush,
       directiveDefs: null !,  // assigned in noSideEffects
       pipeDefs: null !,       // assigned in noSideEffects
@@ -355,7 +347,7 @@ export function ɵɵdefineComponent<T>(componentDefinition: {
         null;
 
     return def as never;
-  });
+  }) as never;
 }
 
 /**
