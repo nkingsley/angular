@@ -96,6 +96,9 @@
     "name": "NO_PARENT_INJECTOR"
   },
   {
+    "name": "NgOnChangesFeatureImpl"
+  },
+  {
     "name": "NodeInjectorFactory"
   },
   {
@@ -115,6 +118,12 @@
   },
   {
     "name": "SANITIZER"
+  },
+  {
+    "name": "SIMPLE_CHANGES_STORE"
+  },
+  {
+    "name": "SimpleChange"
   },
   {
     "name": "TVIEW"
@@ -390,6 +399,9 @@
     "name": "getSelectedIndex"
   },
   {
+    "name": "getSimpleChangesStore"
+  },
+  {
     "name": "getTView"
   },
   {
@@ -522,6 +534,9 @@
     "name": "nextNgElementId"
   },
   {
+    "name": "ngOnChangesSetInput"
+  },
+  {
     "name": "noSideEffects"
   },
   {
@@ -615,6 +630,9 @@
     "name": "setSelectedIndex"
   },
   {
+    "name": "setSimpleChangesStore"
+  },
+  {
     "name": "setUpAttributes"
   },
   {
@@ -631,6 +649,9 @@
   },
   {
     "name": "viewAttachedToChangeDetector"
+  },
+  {
+    "name": "wrapOnChangesHook_inPreviousChangesStorage"
   },
   {
     "name": "writeDirectClass"

@@ -900,7 +900,7 @@ export declare function ɵɵnextContext<T = any>(level?: number): T;
 
 export declare type ɵɵNgModuleDefWithMeta<T, Declarations, Imports, Exports> = ɵNgModuleDef<T>;
 
-export declare function ɵɵNgOnChangesFeature<T>(definition: ɵDirectiveDef<T>): void;
+export declare function ɵɵNgOnChangesFeature<T>(): DirectiveDefFeature;
 
 export declare function ɵɵpipe(index: number, pipeName: string): any;
 
@@ -1064,7 +1064,7 @@ export declare function ɵɵstyleSanitizer(sanitizer: StyleSanitizeFn | null): v
 
 export declare function ɵɵtemplate(index: number, templateFn: ComponentTemplate<any> | null, decls: number, vars: number, tagName?: string | null, attrsIndex?: number | null, localRefsIndex?: number | null, localRefExtractor?: LocalRefExtractor): void;
 
-export declare function ɵɵtemplateRefExtractor(tNode: TNode, currentView: ɵangular_packages_core_core_bp): TemplateRef<unknown> | null;
+export declare function ɵɵtemplateRefExtractor(tNode: TNode, currentView: ɵangular_packages_core_core_bq): TemplateRef<unknown> | null;
 
 export declare function ɵɵtext(index: number, value?: string): void;
 
